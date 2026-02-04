@@ -4,12 +4,18 @@ require('dotenv').config();
 const config = {
   server: process.env.DB_SERVER || 'localhost',
   database: process.env.DB_DATABASE || 'VisitScheduler',
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
   port: parseInt(process.env.DB_PORT || '1433'),
+  authentication: {
+    type: 'default',
+    options: {
+      userName: process.env.DB_USER,
+      password: process.env.DB_PASSWORD
+    }
+  },
   options: {
-    encrypt: true, // Use encryption for Azure
-    trustServerCertificate: true // Trust self-signed certificates for local SQL Server
+    encrypt: true,
+    trustServerCertificate: true,
+    enableArithAbort: true
   }
 };
 
