@@ -76,14 +76,36 @@
       const [errors, setErrors] = useState({});
       const [showAdmin, setShowAdmin] = useState(false);
       const [appointments, setAppointments] = useState([]);
+      const [loading, setLoading] = useState(false);
 
-      // Load appointments from localStorage on mount
+      // API URL - change this to your local server URL
+      const API_URL = 'http://localhost:3001/api/appointments';
+
+      // Load appointments from API when admin panel is opened
       useEffect(() => {
-        const stored = localStorage.getItem('homeVisitAppointments');
-        if (stored) {
-          setAppointments(JSON.parse(stored));
+        if (showAdmin) {
+          fetchAppointments();
         }
-      }, []);
+      }, [showAdmin]);
+
+      const fetchAppointments = async () => {
+        try {
+          setLoading(true);
+          const response = await fetch(API_URL);
+          if (response.ok) {
+            const data = await response.json();
+            setAppointments(data);
+          } else {
+            console.error('Failed to fetch appointments');
+            alert('Could not connect to server. Make sure the backend is running.');
+          }
+        } catch (error) {
+          console.error('Error fetching appointments:', error);
+          alert('Could not connect to server. Make sure the backend is running on http://localhost:3001');
+        } finally {
+          setLoading(false);
+        }
+      };
 
       // Get minimum date (today) and maximum date (3 months from now)
       const today = new Date().toISOString().split('T')[0];
@@ -109,32 +131,39 @@
         return Object.keys(newErrors).length === 0;
       };
 
-      const handleSubmit = (e) => {
+      const handleSubmit = async (e) => {
         e.preventDefault();
         
         if (validateForm()) {
-          // Create new appointment object
-          const newAppointment = {
-            id: Date.now(),
-            name,
-            email,
-            phone,
-            address,
-            requestedDate: selectedDate,
-            requestedTime: selectedTime,
-            notes,
-            status: 'pending',
-            submittedAt: new Date().toISOString()
-          };
+          try {
+            setLoading(true);
+            const response = await fetch(API_URL, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                name,
+                email,
+                phone,
+                address,
+                requestedDate: selectedDate,
+                requestedTime: selectedTime,
+                notes
+              })
+            });
 
-          // Add to appointments list
-          const updatedAppointments = [...appointments, newAppointment];
-          setAppointments(updatedAppointments);
-          
-          // Save to localStorage
-          localStorage.setItem('homeVisitAppointments', JSON.stringify(updatedAppointments));
-          
-          setIsSubmitted(true);
+            if (response.ok) {
+              setIsSubmitted(true);
+            } else {
+              alert('Failed to submit appointment. Please try again.');
+            }
+          } catch (error) {
+            console.error('Error submitting appointment:', error);
+            alert('Could not connect to server. Make sure the backend is running on http://localhost:3001');
+          } finally {
+            setLoading(false);
+          }
         }
       };
 
@@ -150,18 +179,48 @@
         setErrors({});
       };
 
-      const updateAppointmentStatus = (id, newStatus) => {
-        const updatedAppointments = appointments.map(apt => 
-          apt.id === id ? { ...apt, status: newStatus } : apt
-        );
-        setAppointments(updatedAppointments);
-        localStorage.setItem('homeVisitAppointments', JSON.stringify(updatedAppointments));
+      const updateAppointmentStatus = async (id, newStatus) => {
+        try {
+          const response = await fetch(`${API_URL}/${id}/status`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ status: newStatus })
+          });
+
+          if (response.ok) {
+            // Refresh appointments list
+            fetchAppointments();
+          } else {
+            alert('Failed to update appointment status');
+          }
+        } catch (error) {
+          console.error('Error updating appointment:', error);
+          alert('Could not connect to server');
+        }
       };
 
-      const deleteAppointment = (id) => {
-        const updatedAppointments = appointments.filter(apt => apt.id !== id);
-        setAppointments(updatedAppointments);
-        localStorage.setItem('homeVisitAppointments', JSON.stringify(updatedAppointments));
+      const deleteAppointment = async (id) => {
+        if (!confirm('Are you sure you want to delete this appointment?')) {
+          return;
+        }
+
+        try {
+          const response = await fetch(`${API_URL}/${id}`, {
+            method: 'DELETE'
+          });
+
+          if (response.ok) {
+            // Refresh appointments list
+            fetchAppointments();
+          } else {
+            alert('Failed to delete appointment');
+          }
+        } catch (error) {
+          console.error('Error deleting appointment:', error);
+          alert('Could not connect to server');
+        }
       };
 
       const formatDate = (dateString) => {

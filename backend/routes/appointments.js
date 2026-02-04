@@ -39,31 +39,49 @@ router.post('/', async (req, res) => {
   try {
     const { name, email, phone, address, requestedDate, requestedTime, notes } = req.body;
     
+    console.log('Received appointment request:', { name, email, phone, address, requestedDate, requestedTime, notes });
+    
     // Validation
     if (!name || !email || !phone || !address || !requestedDate || !requestedTime) {
+      console.log('Validation failed - missing fields');
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
+    // Format time to HH:MM:SS format
+    let formattedTime = requestedTime;
+    if (requestedTime && !requestedTime.includes(':00')) {
+      const parts = requestedTime.split(':');
+      if (parts.length === 2) {
+        formattedTime = `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}:00`;
+      }
+    }
+    
+    console.log('Formatted time:', formattedTime);
+    
     const pool = getPool();
+    console.log('Attempting to insert into database...');
+    
     const result = await pool.request()
       .input('name', sql.NVarChar, name)
       .input('email', sql.NVarChar, email)
       .input('phone', sql.NVarChar, phone)
       .input('address', sql.NVarChar, address)
       .input('requestedDate', sql.Date, requestedDate)
-      .input('requestedTime', sql.Time, requestedTime)
+      .input('requestedTime', sql.VarChar, formattedTime)
       .input('notes', sql.NVarChar, notes || '')
       .input('status', sql.NVarChar, 'pending')
       .query(`
         INSERT INTO Appointments (name, email, phone, address, requestedDate, requestedTime, notes, status, submittedAt)
         OUTPUT INSERTED.*
-        VALUES (@name, @email, @phone, @address, @requestedDate, @requestedTime, @notes, @status, GETDATE())
+        VALUES (@name, @email, @phone, @address, @requestedDate, CAST(@requestedTime AS TIME), @notes, @status, GETDATE())
       `);
     
+    console.log('Insert successful:', result.recordset[0]);
     res.status(201).json(result.recordset[0]);
   } catch (err) {
     console.error('Error creating appointment:', err);
-    res.status(500).json({ error: 'Failed to create appointment' });
+    console.error('Error details:', err.message);
+    res.status(500).json({ error: 'Failed to create appointment', message: err.message });
   }
 });
 

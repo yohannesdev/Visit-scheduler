@@ -27,10 +27,23 @@ app.get('/api/health', (req, res) => {
 async function startServer() {
   try {
     await connectDB();
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
       console.log(`📋 API available at http://localhost:${PORT}/api/appointments`);
+      console.log(`Server is listening and ready to accept connections...`);
     });
+
+    // Keep server alive
+    server.on('error', (err) => {
+      console.error('Server error:', err);
+    });
+
+    // Log all requests
+    app.use((req, res, next) => {
+      console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+      next();
+    });
+
   } catch (err) {
     console.error('Failed to start server:', err);
     process.exit(1);
@@ -38,3 +51,9 @@ async function startServer() {
 }
 
 startServer();
+
+// Handle process termination
+process.on('SIGINT', () => {
+  console.log('\n👋 Shutting down server gracefully...');
+  process.exit(0);
+});
