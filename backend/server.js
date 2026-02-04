@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { connectDB } = require('./db');
 const appointmentRoutes = require('./routes/appointments');
+const authRoutes = require('./routes/auth');
 require('dotenv').config();
 
 const app = express();
@@ -17,6 +18,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/auth', authRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

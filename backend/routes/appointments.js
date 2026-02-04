@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getPool, sql } = require('../db');
+const { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } = require('../googleCalendar');
 
 // GET all appointments
 router.get('/', async (req, res) => {
@@ -109,7 +110,21 @@ router.put('/:id/status', async (req, res) => {
       return res.status(404).json({ error: 'Appointment not found' });
     }
     
-    res.json(result.recordset[0]);
+    const appointment = result.recordset[0];
+    
+    // Create Google Calendar event when status changes to "confirmed"
+    if (status === 'confirmed' && process.env.GOOGLE_REFRESH_TOKEN) {
+      try {
+        console.log('Creating Google Calendar event for appointment:', appointment.id);
+        await createCalendarEvent(appointment);
+        console.log('✅ Google Calendar event created successfully');
+      } catch (calendarError) {
+        console.error('⚠️  Warning: Could not create calendar event:', calendarError.message);
+        // Don't fail the request if calendar creation fails
+      }
+    }
+    
+    res.json(appointment);
   } catch (err) {
     console.error('Error updating appointment:', err);
     res.status(500).json({ error: 'Failed to update appointment' });
