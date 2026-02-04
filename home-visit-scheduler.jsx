@@ -1,0 +1,467 @@
+import React, { useState, useEffect } from 'react';
+import { Calendar, Clock, CheckCircle, XCircle, List } from 'lucide-react';
+
+export default function HomeVisitScheduler() {
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [notes, setNotes] = useState('');
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [appointments, setAppointments] = useState([]);
+
+  // Load appointments from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem('homeVisitAppointments');
+    if (stored) {
+      setAppointments(JSON.parse(stored));
+    }
+  }, []);
+
+  // Get minimum date (today) and maximum date (3 months from now)
+  const today = new Date().toISOString().split('T')[0];
+  const maxDate = new Date();
+  maxDate.setMonth(maxDate.getMonth() + 3);
+  const maxDateStr = maxDate.toISOString().split('T')[0];
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!name.trim()) newErrors.name = 'Name is required';
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Email is invalid';
+    }
+    if (!phone.trim()) newErrors.phone = 'Phone number is required';
+    if (!address.trim()) newErrors.address = 'Address is required';
+    if (!selectedDate) newErrors.date = 'Please select a date';
+    if (!selectedTime) newErrors.time = 'Please select a time';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (validateForm()) {
+      // Create new appointment object
+      const newAppointment = {
+        id: Date.now(),
+        name,
+        email,
+        phone,
+        address,
+        requestedDate: selectedDate,
+        requestedTime: selectedTime,
+        notes,
+        status: 'pending',
+        submittedAt: new Date().toISOString()
+      };
+
+      // Add to appointments list
+      const updatedAppointments = [...appointments, newAppointment];
+      setAppointments(updatedAppointments);
+      
+      // Save to localStorage
+      localStorage.setItem('homeVisitAppointments', JSON.stringify(updatedAppointments));
+      
+      setIsSubmitted(true);
+    }
+  };
+
+  const handleReset = () => {
+    setSelectedDate('');
+    setSelectedTime('');
+    setName('');
+    setEmail('');
+    setPhone('');
+    setAddress('');
+    setNotes('');
+    setIsSubmitted(false);
+    setErrors({});
+  };
+
+  const updateAppointmentStatus = (id, newStatus) => {
+    const updatedAppointments = appointments.map(apt => 
+      apt.id === id ? { ...apt, status: newStatus } : apt
+    );
+    setAppointments(updatedAppointments);
+    localStorage.setItem('homeVisitAppointments', JSON.stringify(updatedAppointments));
+  };
+
+  const deleteAppointment = (id) => {
+    const updatedAppointments = appointments.filter(apt => apt.id !== id);
+    setAppointments(updatedAppointments);
+    localStorage.setItem('homeVisitAppointments', JSON.stringify(updatedAppointments));
+  };
+
+  const formatDate = (dateString) => {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString('en-US', options);
+  };
+
+  const formatDateTime = (isoString) => {
+    const date = new Date(isoString);
+    return date.toLocaleString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric',
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+
+  const formatTime = (timeString) => {
+    if (!timeString) return '';
+    const [hours, minutes] = timeString.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
+
+  const exportToCSV = () => {
+    const headers = ['Name', 'Email', 'Phone', 'Address', 'Requested Date', 'Requested Time', 'Notes', 'Status', 'Submitted At'];
+    const rows = appointments.map(apt => [
+      apt.name,
+      apt.email,
+      apt.phone,
+      apt.address,
+      apt.requestedDate,
+      apt.requestedTime || '',
+      apt.notes || '',
+      apt.status,
+      formatDateTime(apt.submittedAt)
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `appointments_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+  };
+
+  // Admin Panel View
+  if (showAdmin) {
+    const pendingCount = appointments.filter(a => a.status === 'pending').length;
+    const confirmedCount = appointments.filter(a => a.status === 'confirmed').length;
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 mb-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
+                <p className="text-gray-600">Manage appointment requests</p>
+              </div>
+              <button
+                onClick={() => setShowAdmin(false)}
+                className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                Back to Form
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                <p className="text-yellow-800 text-sm font-medium">Pending</p>
+                <p className="text-3xl font-bold text-yellow-900">{pendingCount}</p>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                <p className="text-green-800 text-sm font-medium">Confirmed</p>
+                <p className="text-3xl font-bold text-green-900">{confirmedCount}</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <p className="text-gray-700 text-sm font-medium">Total</p>
+                <p className="text-3xl font-bold text-gray-900">{appointments.length}</p>
+              </div>
+            </div>
+
+            {appointments.length > 0 && (
+              <button
+                onClick={exportToCSV}
+                className="mb-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm"
+              >
+                Export to CSV
+              </button>
+            )}
+          </div>
+
+          {appointments.length === 0 ? (
+            <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
+              <List className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">No appointments yet</h3>
+              <p className="text-gray-500">Appointment requests will appear here</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {appointments.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt)).map((apt) => (
+                <div key={apt.id} className="bg-white rounded-xl shadow-lg p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-xl font-bold text-gray-800">{apt.name}</h3>
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          apt.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          apt.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {apt.status.toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500">Submitted: {formatDateTime(apt.submittedAt)}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Requested Date & Time</p>
+                      <p className="text-gray-900 font-semibold">{formatDate(apt.requestedDate)}</p>
+                      <p className="text-gray-900 font-semibold">{formatTime(apt.requestedTime)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Contact</p>
+                      <p className="text-gray-900">{apt.email}</p>
+                      <p className="text-gray-900">{apt.phone}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-sm font-medium text-gray-700">Address</p>
+                      <p className="text-gray-900">{apt.address}</p>
+                    </div>
+                    {apt.notes && (
+                      <div className="col-span-2">
+                        <p className="text-sm font-medium text-gray-700">Notes</p>
+                        <p className="text-gray-900 bg-gray-50 p-2 rounded">{apt.notes}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    {apt.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => updateAppointmentStatus(apt.id, 'confirmed')}
+                          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          Confirm
+                        </button>
+                        <button
+                          onClick={() => updateAppointmentStatus(apt.id, 'declined')}
+                          className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          Decline
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => deleteAppointment(apt.id)}
+                      className="ml-auto bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors text-sm"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Success Screen
+  if (isSubmitted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+          <div className="mb-6">
+            <div className="mx-auto w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+              <Clock className="w-10 h-10 text-blue-600" />
+            </div>
+            <h2 className="text-3xl font-bold text-gray-800 mb-2">Request Submitted!</h2>
+            <p className="text-gray-600">We've received your appointment request.</p>
+          </div>
+
+          <div className="bg-indigo-50 rounded-lg p-6 mb-6 text-left">
+            <h3 className="font-semibold text-indigo-900 mb-3">Request Details</h3>
+            <div className="space-y-2 text-sm">
+              <p><span className="font-medium text-gray-700">Name:</span> <span className="text-gray-600">{name}</span></p>
+              <p><span className="font-medium text-gray-700">Email:</span> <span className="text-gray-600">{email}</span></p>
+              <p><span className="font-medium text-gray-700">Phone:</span> <span className="text-gray-600">{phone}</span></p>
+              <p><span className="font-medium text-gray-700">Address:</span> <span className="text-gray-600">{address}</span></p>
+              <p><span className="font-medium text-gray-700">Requested Date:</span> <span className="text-gray-600">{formatDate(selectedDate)}</span></p>
+              <p><span className="font-medium text-gray-700">Requested Time:</span> <span className="text-gray-600">{formatTime(selectedTime)}</span></p>
+              {notes && <p><span className="font-medium text-gray-700">Notes:</span> <span className="text-gray-600">{notes}</span></p>}
+            </div>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-blue-800">
+              Our team will review your request and contact you at <strong>{email}</strong> or <strong>{phone}</strong> within 24 hours to confirm your appointment or suggest an alternative date if needed.
+            </p>
+          </div>
+
+          <button
+            onClick={handleReset}
+            className="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition-colors duration-200"
+          >
+            Submit Another Request
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Client Form View
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-full mb-4">
+            <Calendar className="w-8 h-8 text-indigo-600" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Request Home Visit</h1>
+          <p className="text-gray-600">Submit your preferred date and we'll confirm availability</p>
+          
+          {/* Admin Access Button */}
+          <button
+            onClick={() => setShowAdmin(true)}
+            className="mt-4 text-sm text-gray-500 hover:text-indigo-600 underline"
+          >
+            Admin Access
+          </button>
+        </div>
+
+        <div className="space-y-5">
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+              Full Name *
+            </label>
+            <input
+              type="text"
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className={`w-full px-4 py-3 border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all`}
+              placeholder="John Doe"
+            />
+            {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              Email Address *
+            </label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={`w-full px-4 py-3 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all`}
+              placeholder="john@example.com"
+            />
+            {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+              Phone Number *
+            </label>
+            <input
+              type="tel"
+              id="phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className={`w-full px-4 py-3 border ${errors.phone ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all`}
+              placeholder="(555) 123-4567"
+            />
+            {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
+              Home Address *
+            </label>
+            <textarea
+              id="address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              rows="2"
+              className={`w-full px-4 py-3 border ${errors.address ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all resize-none`}
+              placeholder="123 Main St, City, State, ZIP"
+            />
+            {errors.address && <p className="mt-1 text-sm text-red-600">{errors.address}</p>}
+          </div>
+
+          <div>
+            <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
+              Preferred Visit Date *
+            </label>
+            <input
+              type="date"
+              id="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              min={today}
+              max={maxDateStr}
+              className={`w-full px-4 py-3 border ${errors.date ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all`}
+            />
+            {errors.date && <p className="mt-1 text-sm text-red-600">{errors.date}</p>}
+            <p className="mt-2 text-xs text-gray-500">We'll confirm availability for your preferred date</p>
+          </div>
+
+          <div>
+            <label htmlFor="time" className="block text-sm font-medium text-gray-700 mb-2">
+              Preferred Visit Time *
+            </label>
+            <input
+              type="time"
+              id="time"
+              value={selectedTime}
+              onChange={(e) => setSelectedTime(e.target.value)}
+              className={`w-full px-4 py-3 border ${errors.time ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all`}
+            />
+            {errors.time && <p className="mt-1 text-sm text-red-600">{errors.time}</p>}
+            <p className="mt-2 text-xs text-gray-500">Select your preferred appointment time</p>
+          </div>
+
+          <div>
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
+              Additional Notes (Optional)
+            </label>
+            <textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows="3"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all resize-none"
+              placeholder="Any special requirements or preferences..."
+            />
+          </div>
+
+          <button
+            onClick={handleSubmit}
+            className="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
+          >
+            Confirm preferred date
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
