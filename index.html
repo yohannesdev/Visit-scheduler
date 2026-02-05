@@ -220,6 +220,28 @@
                     .map(k => k.replace(/([A-Z])/g, ' $1').trim())
                     .join(', ');
                   
+                  const staffQuestions = [
+                    "Does the staff consistently arrive on time?",
+                    "Does the staff call if they are unable to make it?",
+                    "Does the staff treat your family or loved one with respect?",
+                    "Is your staff's attitude positive and supportive?",
+                    "Does the staff listen to your needs and follow your care plan?",
+                    "Does your staff keep your home clean and organized during the visit?",
+                    "Do you feel safe with the staff in your home?",
+                    "Is the staff helpful in meeting daily living goals?",
+                    "Does the staff encourage independence when appropriate?",
+                    "Does the staff communicate clearly with you or your coordinator?",
+                    "Are you satisfied with the quality of service provided?",
+                    "Does the staff check in or check out through the EVV app regularly?",
+                    "Do you have any issues with how services are being documented?",
+                    "Would you recommend this staff member to others?"
+                  ];
+
+                  const questionsArray = staffQuestions.map((question, index) => ({
+                    question: question,
+                    answer: staffFormData.responses[`q${index + 1}`] || ''
+                  }));
+                  
                   evaluationData = {
                     evaluation_type: 'staff_service',
                     appointment_id: appointmentId,
@@ -231,7 +253,7 @@
                     service_types: selectedServices,
                     responses: {
                       familyName: staffFormData.familyName,
-                      ...staffFormData.responses,
+                      questions: questionsArray,
                       rating: staffFormData.rating,
                       incidents: staffFormData.incidents,
                       concerns: staffFormData.concerns
@@ -242,6 +264,24 @@
                     .filter(k => parentalFormData.serviceTypes[k])
                     .map(k => k.replace(/([A-Z])/g, ' $1').trim())
                     .join(', ');
+                  
+                  const parentalQuestions = [
+                    "Do you feel the services you provide are helping your child/family reach goals and maintain daily stability?",
+                    "Since you began providing these services, have you noticed improvement in your child's or family's overall well-being?",
+                    "Does our agency provide the support, guidance, and resources you need to continue your role as a parental provider?",
+                    "Is your assigned coordinator helpful and available when you have questions or need assistance?",
+                    "Are your questions about timesheets, billing, or EVV check-in/check-out answered promptly?",
+                    "Do you find the EVV app (check-in/check-out process) easy to use?",
+                    "How would you describe your compensation?",
+                    "Do you believe the allotted service hours are enough to meet your client's needs?",
+                    "Would you like to continue providing services as a parental provider?",
+                    "Overall, how would you rate the quality of services and agency support?"
+                  ];
+
+                  const questionsArray = parentalQuestions.map((question, index) => ({
+                    question: question,
+                    answer: parentalFormData.responses[`q${index + 1}`] || ''
+                  }));
                   
                   evaluationData = {
                     evaluation_type: 'parental_provider',
@@ -254,7 +294,8 @@
                     service_types: selectedServices,
                     responses: {
                       parentName: parentalFormData.parentName,
-                      ...parentalFormData.responses,
+                      questions: questionsArray,
+                      q2_description: parentalFormData.responses.q2desc || '',
                       complaints: parentalFormData.complaints,
                       suggestions: parentalFormData.suggestions
                     }
@@ -501,10 +542,17 @@
         const handleSubmitStaffEval = async (e) => {
           e.preventDefault();
           const selectedServices = Object.keys(staffFormData.serviceTypes).filter(k => staffFormData.serviceTypes[k]).map(k => k.replace(/([A-Z])/g, ' $1').trim()).join(', ');
+          
+          // Build questions array with full question text
+          const questionsArray = questions.map((question, index) => ({
+            question: question,
+            answer: staffFormData.responses[`q${index + 1}`] || ''
+          }));
+          
           await submitEvaluation({
             evaluation_type: 'staff_service', evaluator_name: staffFormData.evaluatorName, evaluator_signature: staffFormData.evaluatorSignature,
             client_name: staffFormData.clientName, service_provider_name: staffFormData.staffName, evaluation_date: staffFormData.evaluationDate,
-            service_types: selectedServices, responses: { familyName: staffFormData.familyName, ...staffFormData.responses, rating: staffFormData.rating, incidents: staffFormData.incidents, concerns: staffFormData.concerns }
+            service_types: selectedServices, responses: { familyName: staffFormData.familyName, questions: questionsArray, rating: staffFormData.rating, incidents: staffFormData.incidents, concerns: staffFormData.concerns }
           });
         };
 
@@ -602,10 +650,17 @@
         const handleSubmitParentalEval = async (e) => {
           e.preventDefault();
           const selectedServices = Object.keys(parentalFormData.serviceTypes).filter(k => parentalFormData.serviceTypes[k]).map(k => k.replace(/([A-Z])/g, ' $1').trim()).join(', ');
+          
+          // Build questions array with full question text
+          const questionsArray = questions.map((question, index) => ({
+            question: question.q,
+            answer: parentalFormData.responses[`q${index + 1}`] || ''
+          }));
+          
           await submitEvaluation({
             evaluation_type: 'parental_provider', evaluator_name: parentalFormData.evaluatorName, evaluator_signature: parentalFormData.evaluatorSignature,
             client_name: parentalFormData.clientName, service_provider_name: parentalFormData.providerName, evaluation_date: parentalFormData.evaluationDate,
-            service_types: selectedServices, responses: { parentName: parentalFormData.parentName, ...parentalFormData.responses, complaints: parentalFormData.complaints, suggestions: parentalFormData.suggestions }
+            service_types: selectedServices, responses: { parentName: parentalFormData.parentName, questions: questionsArray, q2_description: parentalFormData.responses.q2_description, complaints: parentalFormData.complaints, suggestions: parentalFormData.suggestions }
           });
         };
 
@@ -870,8 +925,91 @@
                     <p className="text-gray-500">Create an evaluation using the buttons above</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {evaluations.sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at)).map((evaluation) => (
+                  <>
+                    <div className="mb-4 flex justify-end">
+                      <button
+                        onClick={() => {
+                          // Export evaluations to CSV
+                          const csvRows = [];
+                          
+                          // Headers
+                          const headers = ['Evaluation Type', 'Submitted Date', 'Client Name', 'Service Provider', 'Evaluator Name', 'Evaluator Signature', 'Evaluation Date', 'Service Types'];
+                          
+                          // Find max number of questions across all evaluations
+                          let maxQuestions = 0;
+                          evaluations.forEach(ev => {
+                            if (ev.responses?.questions?.length > maxQuestions) {
+                              maxQuestions = ev.responses.questions.length;
+                            }
+                          });
+                          
+                          // Add question headers
+                          for (let i = 0; i < maxQuestions; i++) {
+                            headers.push(`Question ${i + 1}`, `Answer ${i + 1}`);
+                          }
+                          headers.push('Rating', 'Incidents', 'Concerns', 'Complaints', 'Suggestions');
+                          csvRows.push(headers.join(','));
+                          
+                          // Data rows
+                          evaluations.forEach(ev => {
+                            const row = [
+                              ev.evaluation_type,
+                              new Date(ev.submitted_at).toLocaleString(),
+                              `"${ev.client_name || ''}"`,
+                              `"${ev.service_provider_name || ''}"`,
+                              `"${ev.evaluator_name || ''}"`,
+                              `"${ev.evaluator_signature || ''}"`,
+                              ev.evaluation_date || '',
+                              `"${ev.service_types || ''}"`
+                            ];
+                            
+                            // Add questions and answers
+                            if (ev.responses?.questions) {
+                              ev.responses.questions.forEach(qa => {
+                                row.push(`"${qa.question.replace(/"/g, '""')}"`, `"${qa.answer.replace(/"/g, '""')}"`);
+                              });
+                            }
+                            
+                            // Fill empty question columns
+                            const questionsCount = ev.responses?.questions?.length || 0;
+                            for (let i = questionsCount; i < maxQuestions; i++) {
+                              row.push('', '');
+                            }
+                            
+                            // Add other fields
+                            row.push(
+                              ev.responses?.rating || '',
+                              `"${ev.responses?.incidents || ''}"`,
+                              `"${ev.responses?.concerns || ''}"`,
+                              `"${ev.responses?.complaints || ''}"`,
+                              `"${ev.responses?.suggestions || ''}"`
+                            );
+                            
+                            csvRows.push(row.join(','));
+                          });
+                          
+                          // Download CSV
+                          const csvContent = csvRows.join('\n');
+                          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                          const link = document.createElement('a');
+                          const url = URL.createObjectURL(blob);
+                          link.setAttribute('href', url);
+                          link.setAttribute('download', `evaluations_${new Date().toISOString().split('T')[0]}.csv`);
+                          link.style.visibility = 'hidden';
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
+                        className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Export to Excel
+                      </button>
+                    </div>
+                    <div className="space-y-4">
+                      {evaluations.sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at)).map((evaluation) => (
                       <div key={evaluation.id} className="bg-white rounded-xl shadow-lg p-6">
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex-1">
@@ -953,6 +1091,7 @@
                       </div>
                     ))}
                   </div>
+                  </>
                 )
               )}
             </div>
