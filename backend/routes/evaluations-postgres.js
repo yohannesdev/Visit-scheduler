@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
         TO_CHAR(e.evaluation_date, 'YYYY-MM-DD') as evaluation_date,
         TO_CHAR(e.submitted_at, 'YYYY-MM-DD HH24:MI:SS') as submitted_at,
         a.name as appointment_client_name,
-        a.requestedDate as appointment_date
+        a."requestedDate" as appointment_date
       FROM evaluations e
       LEFT JOIN appointments a ON e.appointment_id = a.id
       ORDER BY e.submitted_at DESC
