@@ -132,7 +132,7 @@
           }
         } catch (error) {
           console.error('Error fetching appointments:', error);
-          alert('Could not connect to server. Make sure the backend is running on http://localhost:3001');
+          alert('Could not connect to server. Make sure the backend is running.');
         } finally {
           setLoading(false);
         }
@@ -191,7 +191,7 @@
             }
           } catch (error) {
             console.error('Error submitting appointment:', error);
-            alert('Could not connect to server. Make sure the backend is running on http://localhost:3001');
+            alert('Could not connect to server. Make sure the backend is running.');
           } finally {
             setLoading(false);
           }
