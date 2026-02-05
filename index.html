@@ -357,6 +357,12 @@
         }
       }, [showAdmin]);
 
+      useEffect(() => {
+        if (showEvaluationsList) {
+          fetchEvaluations();
+        }
+      }, [showEvaluationsList]);
+
       // Submit evaluation
       const submitEvaluation = async (evaluationData) => {
         try {
