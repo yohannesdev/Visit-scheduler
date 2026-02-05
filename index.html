@@ -1237,6 +1237,43 @@
                     </div>
 
                     <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-3">Evaluation Questions</label>
+                      <div className="space-y-3">
+                        {[
+                          "Does the staff consistently arrive on time?",
+                          "Does the staff call if they are unable to make it?",
+                          "Does the staff treat your family or loved one with respect?",
+                          "Is your staff's attitude positive and supportive?",
+                          "Does the staff listen to your needs and follow your care plan?",
+                          "Does your staff keep your home clean and organized during the visit?",
+                          "Do you feel safe with the staff in your home?",
+                          "Is the staff helpful in meeting daily living goals?",
+                          "Does the staff encourage independence when appropriate?",
+                          "Does the staff communicate clearly with you or your coordinator?",
+                          "Are you satisfied with the quality of service provided?",
+                          "Does the staff check in or check out through the EVV app regularly?",
+                          "Do you have any issues with how services are being documented?",
+                          "Would you recommend this staff member to others?"
+                        ].map((q, i) => (
+                          <div key={i} className="bg-white p-3 rounded border border-gray-200">
+                            <p className="text-sm font-medium text-gray-700 mb-2">{i+1}. {q}</p>
+                            <div className="flex gap-3">
+                              {['Yes', 'No', 'Sometimes'].map(opt => (
+                                <label key={opt} className="flex items-center space-x-1 cursor-pointer">
+                                  <input type="radio" name={`staffQ${i+1}`} value={opt} 
+                                         checked={staffFormData.responses[`q${i+1}`] === opt} 
+                                         onChange={(e) => setStaffFormData(prev => ({...prev, responses: {...prev.responses, [`q${i+1}`]: e.target.value}}))} 
+                                         className="w-4 h-4 text-indigo-600"/>
+                                  <span className="text-sm text-gray-700">{opt}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Overall Service Rating</label>
                       <div className="flex gap-2">
                         {[1,2,3,4,5].map(n => (
@@ -1250,7 +1287,13 @@
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Concerns or Feedback (Optional)</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Incidents or Concerns (Optional)</label>
+                      <textarea value={staffFormData.incidents} onChange={(e) => setStaffFormData({...staffFormData, incidents: e.target.value})} 
+                                rows="2" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 resize-none text-sm"/>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Areas for Improvement (Optional)</label>
                       <textarea value={staffFormData.concerns} onChange={(e) => setStaffFormData({...staffFormData, concerns: e.target.value})} 
                                 rows="2" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 resize-none text-sm"/>
                     </div>
@@ -1296,6 +1339,53 @@
                           </label>
                         ))}
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-3">Evaluation Questions</label>
+                      <div className="space-y-3">
+                        {[
+                          {q: "Do you feel the services you provide are helping your child/family reach goals and maintain daily stability?", opts: ['Yes', 'No', 'Somewhat']},
+                          {q: "Since you began providing these services, have you noticed improvement in your child's or family's overall well-being?", opts: ['Yes', 'No', 'Not sure'], hasDesc: true},
+                          {q: "Does our agency provide the support, guidance, and resources you need to continue your role as a parental provider?", opts: ['Always', 'Sometimes', 'Rarely']},
+                          {q: "Is your assigned coordinator helpful and available when you have questions or need assistance?", opts: ['Yes', 'No', 'Sometimes']},
+                          {q: "Are your questions about timesheets, billing, or EVV check-in/check-out answered promptly?", opts: ['Yes', 'No', 'Sometimes']},
+                          {q: "Do you find the EVV app (check-in/check-out process) easy to use?", opts: ['Yes', 'No', 'Sometimes', 'Needs improvement']},
+                          {q: "How would you describe your compensation?", opts: ['Great', 'Fair', 'Unfair', 'Needs improvement']},
+                          {q: "Do you believe the allotted service hours are enough to meet your client's needs?", opts: ['Yes', 'No', 'Not sure']},
+                          {q: "Would you like to continue providing services as a parental provider?", opts: ['Yes', 'No', 'Undecided']},
+                          {q: "Overall, how would you rate the quality of services and agency support?", opts: ['1 (Poor)', '2', '3', '4', '5 (Excellent)']}
+                        ].map((item, i) => (
+                          <div key={i} className="bg-white p-3 rounded border border-gray-200">
+                            <p className="text-sm font-medium text-gray-700 mb-2">{i+1}. {item.q}</p>
+                            <div className="flex flex-wrap gap-3">
+                              {item.opts.map(opt => (
+                                <label key={opt} className="flex items-center space-x-1 cursor-pointer">
+                                  <input type="radio" name={`parentalQ${i+1}`} value={opt} 
+                                         checked={parentalFormData.responses[`q${i+1}`] === opt} 
+                                         onChange={(e) => setParentalFormData(prev => ({...prev, responses: {...prev.responses, [`q${i+1}`]: e.target.value}}))} 
+                                         className="w-4 h-4 text-purple-600"/>
+                                  <span className="text-sm text-gray-700">{opt}</span>
+                                </label>
+                              ))}
+                            </div>
+                            {item.hasDesc && parentalFormData.responses.q2 === 'Yes' && (
+                              <div className="mt-2">
+                                <input type="text" placeholder="Please describe briefly" 
+                                       value={parentalFormData.responses.q2desc || ''} 
+                                       onChange={(e) => setParentalFormData(prev => ({...prev, responses: {...prev.responses, q2desc: e.target.value}}))} 
+                                       className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-purple-500"/>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Complaints, Challenges, or Areas for Improvement (Optional)</label>
+                      <textarea value={parentalFormData.complaints} onChange={(e) => setParentalFormData({...parentalFormData, complaints: e.target.value})} 
+                                rows="2" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 resize-none text-sm"/>
                     </div>
 
                     <div>
