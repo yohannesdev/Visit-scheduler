@@ -83,14 +83,17 @@ router.post('/', async (req, res) => {
     console.log('Insert successful:', result.rows[0]);
     const newAppointment = result.rows[0];
     
-    // Send email notification to business
+    // Send email notification to business (don't wait for it - fire and forget)
     if (process.env.EMAIL_APP_PASSWORD) {
-      console.log('📧 Sending email notification...');
-      await sendNewAppointmentNotification(newAppointment);
+      console.log('📧 Sending email notification in background...');
+      sendNewAppointmentNotification(newAppointment).catch(err => 
+        console.error('Email notification failed:', err)
+      );
     } else {
       console.log('⚠️  Email notifications not configured (missing EMAIL_APP_PASSWORD)');
     }
     
+    // Respond immediately to client without waiting for email
     res.status(201).json(newAppointment);
   } catch (err) {
     console.error('Error creating appointment:', err);
