@@ -952,37 +952,47 @@
                           
                           // Data rows
                           evaluations.forEach(ev => {
+                            const escapeCSV = (str) => {
+                              if (!str) return '';
+                              return `"${String(str).replace(/"/g, '""')}"`;
+                            };
+                            
                             const row = [
-                              ev.evaluation_type,
-                              new Date(ev.submitted_at).toLocaleString(),
-                              `"${ev.client_name || ''}"`,
-                              `"${ev.service_provider_name || ''}"`,
-                              `"${ev.evaluator_name || ''}"`,
-                              `"${ev.evaluator_signature || ''}"`,
-                              ev.evaluation_date || '',
-                              `"${ev.service_types || ''}"`
+                              escapeCSV(ev.evaluation_type),
+                              escapeCSV(new Date(ev.submitted_at).toLocaleString()),
+                              escapeCSV(ev.client_name),
+                              escapeCSV(ev.service_provider_name),
+                              escapeCSV(ev.evaluator_name),
+                              escapeCSV(ev.evaluator_signature),
+                              escapeCSV(ev.evaluation_date),
+                              escapeCSV(ev.service_types)
                             ];
                             
                             // Add questions and answers
-                            if (ev.responses?.questions) {
+                            if (ev.responses?.questions && Array.isArray(ev.responses.questions)) {
                               ev.responses.questions.forEach(qa => {
-                                row.push(`"${qa.question.replace(/"/g, '""')}"`, `"${qa.answer.replace(/"/g, '""')}"`);
+                                row.push(escapeCSV(qa.question), escapeCSV(qa.answer));
                               });
-                            }
-                            
-                            // Fill empty question columns
-                            const questionsCount = ev.responses?.questions?.length || 0;
-                            for (let i = questionsCount; i < maxQuestions; i++) {
-                              row.push('', '');
+                              
+                              // Fill remaining empty question columns
+                              const questionsCount = ev.responses.questions.length;
+                              for (let i = questionsCount; i < maxQuestions; i++) {
+                                row.push('', '');
+                              }
+                            } else {
+                              // Old format - no questions array, fill all question columns as empty
+                              for (let i = 0; i < maxQuestions; i++) {
+                                row.push('', '');
+                              }
                             }
                             
                             // Add other fields
                             row.push(
-                              ev.responses?.rating || '',
-                              `"${ev.responses?.incidents || ''}"`,
-                              `"${ev.responses?.concerns || ''}"`,
-                              `"${ev.responses?.complaints || ''}"`,
-                              `"${ev.responses?.suggestions || ''}"`
+                              escapeCSV(ev.responses?.rating),
+                              escapeCSV(ev.responses?.incidents),
+                              escapeCSV(ev.responses?.concerns),
+                              escapeCSV(ev.responses?.complaints),
+                              escapeCSV(ev.responses?.suggestions)
                             );
                             
                             csvRows.push(row.join(','));
