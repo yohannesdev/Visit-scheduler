@@ -1098,6 +1098,33 @@
               >
                 {loading ? 'Submitting...' : 'Confirm Preferred Visit Date & Time'}
               </button>
+
+              <div className="relative mt-6 pt-6 border-t border-gray-200">
+                <div className="text-center mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800">Service Evaluation</h3>
+                  <p className="text-sm text-gray-600 mt-1">Provide feedback on our services</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => {
+                      setEvaluationType('staff_service');
+                      setShowEvaluationForm(true);
+                    }}
+                    className="py-3 px-4 bg-indigo-100 text-indigo-700 rounded-lg font-medium hover:bg-indigo-200 transition-colors border border-indigo-300"
+                  >
+                    Staff/Service
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEvaluationType('parental_provider');
+                      setShowEvaluationForm(true);
+                    }}
+                    className="py-3 px-4 bg-purple-100 text-purple-700 rounded-lg font-medium hover:bg-purple-200 transition-colors border border-purple-300"
+                  >
+                    Parental Provider
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
