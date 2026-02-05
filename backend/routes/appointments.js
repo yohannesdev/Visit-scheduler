@@ -9,7 +9,7 @@ router.get('/', async (req, res) => {
   try {
     const pool = getPool();
     const result = await pool.request()
-      .query('SELECT * FROM Appointments ORDER BY submittedAt DESC');
+      .query('SELECT id, name, email, phone, address, CONVERT(VARCHAR(10), requestedDate, 23) as requestedDate, requestedTime, notes, status, submittedAt FROM Appointments ORDER BY submittedAt DESC');
     res.json(result.recordset);
   } catch (err) {
     console.error('Error fetching appointments:', err);
@@ -23,7 +23,7 @@ router.get('/:id', async (req, res) => {
     const pool = getPool();
     const result = await pool.request()
       .input('id', sql.Int, req.params.id)
-      .query('SELECT * FROM Appointments WHERE id = @id');
+      .query('SELECT id, name, email, phone, address, CONVERT(VARCHAR(10), requestedDate, 23) as requestedDate, requestedTime, notes, status, submittedAt FROM Appointments WHERE id = @id');
     
     if (result.recordset.length === 0) {
       return res.status(404).json({ error: 'Appointment not found' });
