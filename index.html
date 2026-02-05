@@ -539,14 +539,20 @@
                   id="date"
                   value={selectedDate}
                   onChange={(e) => {
-                    const date = new Date(e.target.value + 'T00:00:00');
-                    // Check if Sunday (0 = Sunday)
-                    if (date.getDay() === 0) {
-                      alert('Sorry, we do not schedule visits on Sundays. Please select another date.');
-                      setSelectedDate('');
-                    } else {
-                      setSelectedDate(e.target.value);
+                    const dateValue = e.target.value;
+                    if (dateValue) {
+                      // Parse date parts to avoid timezone issues
+                      const [year, month, day] = dateValue.split('-').map(Number);
+                      const date = new Date(year, month - 1, day);
+                      
+                      // Check if Sunday (0 = Sunday)
+                      if (date.getDay() === 0) {
+                        alert('Sorry, we do not schedule visits on Sundays. Please select another date.');
+                        setSelectedDate('');
+                        return;
+                      }
                     }
+                    setSelectedDate(dateValue);
                   }}
                   min={today}
                   max={maxDateStr}
