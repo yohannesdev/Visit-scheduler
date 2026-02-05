@@ -9,6 +9,8 @@ const { connectDB } = require(dbModule);
 // Choose routes based on environment  
 const appointmentRoutesModule = process.env.DATABASE_URL ? './routes/appointments-postgres' : './routes/appointments';
 const appointmentRoutes = require(appointmentRoutesModule);
+const evaluationRoutesModule = process.env.DATABASE_URL ? './routes/evaluations-postgres' : './routes/evaluations-postgres';
+const evaluationRoutes = require(evaluationRoutesModule);
 const authRoutes = require('./routes/auth');
 
 const app = express();
@@ -24,6 +26,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/evaluations', evaluationRoutes);
 app.use('/api/auth', authRoutes);
 
 // Health check

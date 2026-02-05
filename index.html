@@ -78,6 +78,10 @@
       const [appointments, setAppointments] = useState([]);
       const [loading, setLoading] = useState(false);
       const [bookedDates, setBookedDates] = useState([]);
+      const [showEvaluationForm, setShowEvaluationForm] = useState(false);
+      const [evaluationType, setEvaluationType] = useState(null);
+      const [evaluations, setEvaluations] = useState([]);
+      const [showEvaluationsList, setShowEvaluationsList] = useState(false);
 
       // Check URL for admin access
       useEffect(() => {
@@ -111,6 +115,7 @@
 
       // API URL - Railway production backend
       const API_URL = 'https://visit-scheduler-production-a96c.up.railway.app/api/appointments';
+      const EVALUATIONS_API_URL = 'https://visit-scheduler-production-a96c.up.railway.app/api/evaluations';
 
       // Load appointments from API when admin panel is opened
       useEffect(() => {
@@ -318,6 +323,64 @@
         a.click();
       };
 
+      // Load evaluations
+      const fetchEvaluations = async () => {
+        try {
+          const response = await fetch(EVALUATIONS_API_URL);
+          if (response.ok) {
+            const data = await response.json();
+            setEvaluations(data);
+          }
+        } catch (error) {
+          console.error('Error fetching evaluations:', error);
+        }
+      };
+
+      useEffect(() => {
+        if (showAdmin) {
+          fetchEvaluations();
+        }
+      }, [showAdmin]);
+
+      // Submit evaluation
+      const submitEvaluation = async (evaluationData) => {
+        try {
+          const response = await fetch(EVALUATIONS_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(evaluationData)
+          });
+
+          if (response.ok) {
+            alert('Evaluation submitted successfully!');
+            setShowEvaluationForm(false);
+            setEvaluationType(null);
+            fetchEvaluations();
+          } else {
+            alert('Failed to submit evaluation');
+          }
+        } catch (error) {
+          console.error('Error submitting evaluation:', error);
+          alert('Error submitting evaluation');
+        }
+      };
+
+      // Delete evaluation
+      const deleteEvaluation = async (id) => {
+        if (!confirm('Are you sure you want to delete this evaluation?')) return;
+        
+        try {
+          const response = await fetch(`${EVALUATIONS_API_URL}/${id}`, {
+            method: 'DELETE'
+          });
+          if (response.ok) {
+            fetchEvaluations();
+          }
+        } catch (error) {
+          console.error('Error deleting evaluation:', error);
+        }
+      };
+
       // Admin Panel View
       if (showAdmin) {
         const pendingCount = appointments.filter(a => a.status === 'pending').length;
@@ -330,7 +393,7 @@
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
-                    <p className="text-gray-600">Manage appointment requests</p>
+                    <p className="text-gray-600">Manage appointment requests and evaluations</p>
                   </div>
                   <button
                     onClick={() => setShowAdmin(false)}
@@ -340,109 +403,258 @@
                   </button>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                    <p className="text-yellow-800 text-sm font-medium">Pending</p>
-                    <p className="text-3xl font-bold text-yellow-900">{pendingCount}</p>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                    <p className="text-green-800 text-sm font-medium">Confirmed</p>
-                    <p className="text-3xl font-bold text-green-900">{confirmedCount}</p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <p className="text-gray-700 text-sm font-medium">Total</p>
-                    <p className="text-3xl font-bold text-gray-900">{appointments.length}</p>
-                  </div>
+                {/* Navigation Tabs */}
+                <div className="flex gap-2 mb-6 border-b">
+                  <button
+                    onClick={() => setShowEvaluationsList(false)}
+                    className={`px-4 py-2 font-medium transition-colors ${
+                      !showEvaluationsList
+                        ? 'border-b-2 border-indigo-600 text-indigo-600'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Appointments
+                  </button>
+                  <button
+                    onClick={() => setShowEvaluationsList(true)}
+                    className={`px-4 py-2 font-medium transition-colors ${
+                      showEvaluationsList
+                        ? 'border-b-2 border-indigo-600 text-indigo-600'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Evaluations ({evaluations.length})
+                  </button>
                 </div>
 
-                {appointments.length > 0 && (
-                  <button
-                    onClick={exportToCSV}
-                    className="mb-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm"
-                  >
-                    Export to CSV
-                  </button>
+                {/* Stats - Appointments or Evaluations */}
+                {!showEvaluationsList ? (
+                  <>
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                      <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                        <p className="text-yellow-800 text-sm font-medium">Pending</p>
+                        <p className="text-3xl font-bold text-yellow-900">{pendingCount}</p>
+                      </div>
+                      <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                        <p className="text-green-800 text-sm font-medium">Confirmed</p>
+                        <p className="text-3xl font-bold text-green-900">{confirmedCount}</p>
+                      </div>
+                      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <p className="text-gray-700 text-sm font-medium">Total</p>
+                        <p className="text-3xl font-bold text-gray-900">{appointments.length}</p>
+                      </div>
+                    </div>
+
+                    {appointments.length > 0 && (
+                      <button
+                        onClick={exportToCSV}
+                        className="mb-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm"
+                      >
+                        Export to CSV
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div className="mb-6">
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => {
+                          setEvaluationType('staff_service');
+                          setShowEvaluationForm(true);
+                        }}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                      >
+                        + Staff/Service Evaluation
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEvaluationType('parental_provider');
+                          setShowEvaluationForm(true);
+                        }}
+                        className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                      >
+                        + Parental Provider Evaluation
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
 
-              {appointments.length === 0 ? (
-                <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
-                  <List className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-600 mb-2">No appointments yet</h3>
-                  <p className="text-gray-500">Appointment requests will appear here</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {appointments.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt)).map((apt) => (
-                    <div key={apt.id} className="bg-white rounded-xl shadow-lg p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-xl font-bold text-gray-800">{apt.name}</h3>
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                              apt.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                              apt.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
-                              {apt.status.toUpperCase()}
-                            </span>
+              {/* Content Area - Appointments or Evaluations */}
+              {!showEvaluationsList ? (
+                /* Appointments List */
+                appointments.length === 0 ? (
+                  <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
+                    <List className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-600 mb-2">No appointments yet</h3>
+                    <p className="text-gray-500">Appointment requests will appear here</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {appointments.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt)).map((apt) => (
+                      <div key={apt.id} className="bg-white rounded-xl shadow-lg p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-xl font-bold text-gray-800">{apt.name}</h3>
+                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                apt.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                apt.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {apt.status.toUpperCase()}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-500">Submitted: {formatDateTime(apt.submittedAt)}</p>
                           </div>
-                          <p className="text-sm text-gray-500">Submitted: {formatDateTime(apt.submittedAt)}</p>
                         </div>
-                      </div>
 
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-700">Requested Date & Time</p>
-                          <p className="text-gray-900 font-semibold">{formatDate(apt.requestedDate)}</p>
-                          <p className="text-gray-900 font-semibold">{formatTime(apt.requestedTime)}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-700">Contact</p>
-                          <p className="text-gray-900">{apt.email}</p>
-                          <p className="text-gray-900">{apt.phone}</p>
-                        </div>
-                        <div className="col-span-2">
-                          <p className="text-sm font-medium text-gray-700">Address</p>
-                          <p className="text-gray-900">{apt.address}</p>
-                        </div>
-                        {apt.notes && (
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">Requested Date & Time</p>
+                            <p className="text-gray-900 font-semibold">{formatDate(apt.requestedDate)}</p>
+                            <p className="text-gray-900 font-semibold">{formatTime(apt.requestedTime)}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">Contact</p>
+                            <p className="text-gray-900">{apt.email}</p>
+                            <p className="text-gray-900">{apt.phone}</p>
+                          </div>
                           <div className="col-span-2">
-                            <p className="text-sm font-medium text-gray-700">Notes</p>
-                            <p className="text-gray-900 bg-gray-50 p-2 rounded">{apt.notes}</p>
+                            <p className="text-sm font-medium text-gray-700">Address</p>
+                            <p className="text-gray-900">{apt.address}</p>
                           </div>
-                        )}
-                      </div>
+                          {apt.notes && (
+                            <div className="col-span-2">
+                              <p className="text-sm font-medium text-gray-700">Notes</p>
+                              <p className="text-gray-900 bg-gray-50 p-2 rounded">{apt.notes}</p>
+                            </div>
+                          )}
+                        </div>
 
-                      <div className="flex gap-2">
-                        {apt.status === 'pending' && (
-                          <>
-                            <button
-                              onClick={() => updateAppointmentStatus(apt.id, 'confirmed')}
-                              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              Confirm
-                            </button>
-                            <button
-                              onClick={() => updateAppointmentStatus(apt.id, 'declined')}
-                              className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm"
-                            >
-                              <XCircle className="w-4 h-4" />
-                              Decline
-                            </button>
-                          </>
-                        )}
-                        <button
-                          onClick={() => deleteAppointment(apt.id)}
-                          className="ml-auto bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors text-sm"
-                        >
-                          Delete
-                        </button>
+                        <div className="flex gap-2">
+                          {apt.status === 'pending' && (
+                            <>
+                              <button
+                                onClick={() => updateAppointmentStatus(apt.id, 'confirmed')}
+                                className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                                Confirm
+                              </button>
+                              <button
+                                onClick={() => updateAppointmentStatus(apt.id, 'declined')}
+                                className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm"
+                              >
+                                <XCircle className="w-4 h-4" />
+                                Decline
+                              </button>
+                            </>
+                          )}
+                          <button
+                            onClick={() => deleteAppointment(apt.id)}
+                            className="ml-auto bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors text-sm"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )
+              ) : (
+                /* Evaluations List */
+                evaluations.length === 0 ? (
+                  <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
+                    <List className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-600 mb-2">No evaluations yet</h3>
+                    <p className="text-gray-500">Create an evaluation using the buttons above</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {evaluations.sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at)).map((eval) => (
+                      <div key={eval.id} className="bg-white rounded-xl shadow-lg p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-xl font-bold text-gray-800">
+                                {eval.evaluation_type === 'staff_service' ? 'Staff/Service Evaluation' : 'Parental Provider Evaluation'}
+                              </h3>
+                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                eval.evaluation_type === 'staff_service' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                              }`}>
+                                {eval.evaluation_type.replace('_', ' ').toUpperCase()}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-500">Submitted: {formatDateTime(eval.submitted_at)}</p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">Client Name</p>
+                            <p className="text-gray-900">{eval.client_name}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">Service Provider</p>
+                            <p className="text-gray-900">{eval.service_provider_name}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">Evaluator</p>
+                            <p className="text-gray-900">{eval.evaluator_name}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">Evaluation Date</p>
+                            <p className="text-gray-900">{formatDate(eval.evaluation_date)}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <p className="text-sm font-medium text-gray-700">Service Types</p>
+                            <p className="text-gray-900">{eval.service_types}</p>
+                          </div>
+                          {eval.evaluation_type === 'staff_service' && eval.responses?.rating && (
+                            <div className="col-span-2">
+                              <p className="text-sm font-medium text-gray-700">Overall Rating</p>
+                              <div className="flex items-center gap-2">
+                                <div className="flex">
+                                  {[1, 2, 3, 4, 5].map(star => (
+                                    <span key={star} className={`text-2xl ${star <= eval.responses.rating ? 'text-yellow-400' : 'text-gray-300'}`}>
+                                      ★
+                                    </span>
+                                  ))}
+                                </div>
+                                <span className="text-gray-600">({eval.responses.rating}/5)</span>
+                              </div>
+                            </div>
+                          )}
+                          {eval.evaluation_type === 'parental_provider' && eval.responses?.overallRating && (
+                            <div className="col-span-2">
+                              <p className="text-sm font-medium text-gray-700">Overall Rating</p>
+                              <p className="text-gray-900">{eval.responses.overallRating}/5</p>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              const detailsText = `Evaluation Details:\n\nType: ${eval.evaluation_type}\nClient: ${eval.client_name}\nProvider: ${eval.service_provider_name}\nEvaluator: ${eval.evaluator_name}\nDate: ${eval.evaluation_date}\n\nResponses:\n${JSON.stringify(eval.responses, null, 2)}`;
+                              alert(detailsText);
+                            }}
+                            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm"
+                          >
+                            View Details
+                          </button>
+                          <button
+                            onClick={() => deleteEvaluation(eval.id)}
+                            className="ml-auto bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors text-sm"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
               )}
             </div>
           </div>
@@ -496,6 +708,221 @@
               >
                 Submit Another Request
               </button>
+            </div>
+          </div>
+        );
+      }
+
+      // Evaluation Forms
+      if (showEvaluationForm && evaluationType === 'staff_service') {
+        const [formData, setFormData] = useState({
+          familyName: '', clientName: '', staffName: '', evaluationDate: new Date().toISOString().split('T')[0],
+          serviceTypes: { homemaker: false, personalCare: false, communityConnection: false, supportedCommunityConnection: false, respite: false, mentorship: false },
+          responses: {q1:'',q2:'',q3:'',q4:'',q5:'',q6:'',q7:'',q8:'',q9:'',q10:'',q11:'',q12:'',q13:'',q14:''},
+          rating: '', incidents: '', concerns: '', evaluatorName: '', evaluatorSignature: ''
+        });
+
+        const questions = [
+          "Does the staff consistently arrive on time?",
+          "Does the staff call if they are unable to make it?",
+          "Does the staff treat your family or loved one with respect?",
+          "Is your staff's attitude positive and supportive?",
+          "Does the staff listen to your needs and follow your care plan?",
+          "Does your staff keep your home clean and organized during the visit?",
+          "Do you feel safe with the staff in your home?",
+          "Is the staff helpful in meeting daily living goals?",
+          "Does the staff encourage independence when appropriate?",
+          "Does the staff communicate clearly with you or your coordinator?",
+          "Are you satisfied with the quality of service provided?",
+          "Does the staff check in or check out through the EVV app regularly?",
+          "Do you have any issues with how services are being documented?",
+          "Would you recommend this staff member to others?"
+        ];
+
+        const handleSubmitStaffEval = async (e) => {
+          e.preventDefault();
+          const selectedServices = Object.keys(formData.serviceTypes).filter(k => formData.serviceTypes[k]).map(k => k.replace(/([A-Z])/g, ' $1').trim()).join(', ');
+          await submitEvaluation({
+            evaluation_type: 'staff_service', evaluator_name: formData.evaluatorName, evaluator_signature: formData.evaluatorSignature,
+            client_name: formData.clientName, service_provider_name: formData.staffName, evaluation_date: formData.evaluationDate,
+            service_types: selectedServices, responses: { familyName: formData.familyName, ...formData.responses, rating: formData.rating, incidents: formData.incidents, concerns: formData.concerns }
+          });
+        };
+
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 overflow-y-auto">
+            <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl p-8 my-8">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-3xl font-bold text-gray-800">Staff/Service Evaluation Form</h2>
+                <button onClick={() => {setShowEvaluationForm(false); setEvaluationType(null);}} className="text-gray-500 hover:text-gray-700">
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+              <form onSubmit={handleSubmitStaffEval} className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div><label className="block text-sm font-medium text-gray-700 mb-2">Family Name *</label>
+                    <input type="text" value={formData.familyName} onChange={(e) => setFormData({...formData, familyName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-2">Client Name *</label>
+                    <input type="text" value={formData.clientName} onChange={(e) => setFormData({...formData, clientName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-2">Staff Name *</label>
+                    <input type="text" value={formData.staffName} onChange={(e) => setFormData({...formData, staffName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-2">Date of Evaluation *</label>
+                    <input type="date" value={formData.evaluationDate} onChange={(e) => setFormData({...formData, evaluationDate: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
+                </div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-3">Service Types *</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {['homemaker', 'personalCare', 'communityConnection', 'supportedCommunityConnection', 'respite', 'mentorship'].map(type => (
+                      <label key={type} className="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" checked={formData.serviceTypes[type]} onChange={() => setFormData(prev => ({...prev, serviceTypes: {...prev.serviceTypes, [type]: !prev.serviceTypes[type]}}))} className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"/>
+                        <span className="text-gray-700 capitalize">{type.replace(/([A-Z])/g, ' $1').trim()}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-4"><h3 className="text-xl font-semibold text-gray-800">Evaluation Questions</h3>
+                  {questions.map((q, i) => (
+                    <div key={i} className="bg-gray-50 p-4 rounded-lg">
+                      <p className="font-medium text-gray-700 mb-3">{i+1}. {q}</p>
+                      <div className="flex gap-4">
+                        {['Yes', 'No', 'Sometimes'].map(opt => (
+                          <label key={opt} className="flex items-center space-x-2 cursor-pointer">
+                            <input type="radio" name={`q${i+1}`} value={opt} checked={formData.responses[`q${i+1}`] === opt} onChange={(e) => setFormData(prev => ({...prev, responses: {...prev.responses, [`q${i+1}`]: e.target.value}}))} required className="w-4 h-4 text-indigo-600"/>
+                            <span className="text-gray-700">{opt}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="bg-indigo-50 p-4 rounded-lg">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Overall Rating *</label>
+                  <div className="flex gap-3">
+                    {[1,2,3,4,5].map(n => (
+                      <label key={n} className="flex items-center space-x-2 cursor-pointer">
+                        <input type="radio" name="rating" value={n} checked={formData.rating === n.toString()} onChange={(e) => setFormData({...formData, rating: e.target.value})} required className="w-4 h-4 text-indigo-600"/>
+                        <span className="text-gray-700 font-semibold">{n}</span>
+                      </label>
+                    ))}
+                    <span className="text-sm text-gray-500 ml-2">(1 = Poor, 5 = Excellent)</span>
+                  </div>
+                </div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">Incidents or Concerns</label>
+                  <textarea value={formData.incidents} onChange={(e) => setFormData({...formData, incidents: e.target.value})} rows="3" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">Areas for Improvement</label>
+                  <textarea value={formData.concerns} onChange={(e) => setFormData({...formData, concerns: e.target.value})} rows="3" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><label className="block text-sm font-medium text-gray-700 mb-2">Evaluator Name *</label>
+                    <input type="text" value={formData.evaluatorName} onChange={(e) => setFormData({...formData, evaluatorName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-2">Signature *</label>
+                    <input type="text" value={formData.evaluatorSignature} onChange={(e) => setFormData({...formData, evaluatorSignature: e.target.value})} required placeholder="Type your name" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button type="submit" className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition-colors">Submit Evaluation</button>
+                  <button type="button" onClick={() => {setShowEvaluationForm(false); setEvaluationType(null);}} className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        );
+      }
+
+      if (showEvaluationForm && evaluationType === 'parental_provider') {
+        const [formData, setFormData] = useState({
+          parentName: '', clientName: '', providerName: '', evaluationDate: new Date().toISOString().split('T')[0],
+          serviceTypes: { homemaker: false, personalCare: false, communityConnection: false, supportedCommunityConnection: false, respite: false, mentorship: false },
+          responses: {q1:'',q2:'',q2desc:'',q3:'',q4:'',q5:'',q6:'',q7:'',q8:'',q9:'',q10:''},
+          complaints: '', suggestions: '', evaluatorName: '', evaluatorSignature: ''
+        });
+
+        const questions = [
+          {q: "Do you feel the services you provide are helping your child/family reach goals and maintain daily stability?", opts: ['Yes', 'No', 'Somewhat']},
+          {q: "Since you began providing these services, have you noticed improvement in your child's or family's overall well-being?", opts: ['Yes', 'No', 'Not sure'], hasDesc: true},
+          {q: "Does our agency provide the support, guidance, and resources you need to continue your role as a parental provider?", opts: ['Always', 'Sometimes', 'Rarely']},
+          {q: "Is your assigned coordinator helpful and available when you have questions or need assistance?", opts: ['Yes', 'No', 'Sometimes']},
+          {q: "Are your questions about timesheets, billing, or EVV check-in/check-out answered promptly?", opts: ['Yes', 'No', 'Sometimes']},
+          {q: "Do you find the EVV app (check-in/check-out process) easy to use?", opts: ['Yes', 'No', 'Sometimes', 'Needs improvement']},
+          {q: "How would you describe your compensation?", opts: ['Great', 'Fair', 'Unfair', 'Needs improvement']},
+          {q: "Do you believe the allotted service hours are enough to meet your client's needs?", opts: ['Yes', 'No', 'Not sure']},
+          {q: "Would you like to continue providing services as a parental provider?", opts: ['Yes', 'No', 'Undecided']},
+          {q: "Overall, how would you rate the quality of services and agency support?", opts: ['1 (Poor)', '2', '3', '4', '5 (Excellent)']}
+        ];
+
+        const handleSubmitParentalEval = async (e) => {
+          e.preventDefault();
+          const selectedServices = Object.keys(formData.serviceTypes).filter(k => formData.serviceTypes[k]).map(k => k.replace(/([A-Z])/g, ' $1').trim()).join(', ');
+          await submitEvaluation({
+            evaluation_type: 'parental_provider', evaluator_name: formData.evaluatorName, evaluator_signature: formData.evaluatorSignature,
+            client_name: formData.clientName, service_provider_name: formData.providerName, evaluation_date: formData.evaluationDate,
+            service_types: selectedServices, responses: { parentName: formData.parentName, ...formData.responses, complaints: formData.complaints, suggestions: formData.suggestions }
+          });
+        };
+
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 p-4 overflow-y-auto">
+            <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl p-8 my-8">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-3xl font-bold text-gray-800">Parental Provider Evaluation Form</h2>
+                <button onClick={() => {setShowEvaluationForm(false); setEvaluationType(null);}} className="text-gray-500 hover:text-gray-700">
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+              <form onSubmit={handleSubmitParentalEval} className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div><label className="block text-sm font-medium text-gray-700 mb-2">Parent/Guardian Name *</label>
+                    <input type="text" value={formData.parentName} onChange={(e) => setFormData({...formData, parentName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-2">Client Name *</label>
+                    <input type="text" value={formData.clientName} onChange={(e) => setFormData({...formData, clientName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-2">Service Provider Name *</label>
+                    <input type="text" value={formData.providerName} onChange={(e) => setFormData({...formData, providerName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-2">Date of Evaluation *</label>
+                    <input type="date" value={formData.evaluationDate} onChange={(e) => setFormData({...formData, evaluationDate: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
+                </div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-3">Service Types *</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {['homemaker', 'personalCare', 'communityConnection', 'supportedCommunityConnection', 'respite', 'mentorship'].map(type => (
+                      <label key={type} className="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" checked={formData.serviceTypes[type]} onChange={() => setFormData(prev => ({...prev, serviceTypes: {...prev.serviceTypes, [type]: !prev.serviceTypes[type]}}))} className="w-4 h-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"/>
+                        <span className="text-gray-700 capitalize">{type.replace(/([A-Z])/g, ' $1').trim()}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-4"><h3 className="text-xl font-semibold text-gray-800">Evaluation Questions</h3>
+                  {questions.map((item, i) => (
+                    <div key={i} className="bg-gray-50 p-4 rounded-lg">
+                      <p className="font-medium text-gray-700 mb-3">{i+1}. {item.q}</p>
+                      <div className="flex flex-wrap gap-3">
+                        {item.opts.map(opt => (
+                          <label key={opt} className="flex items-center space-x-2 cursor-pointer">
+                            <input type="radio" name={`q${i+1}`} value={opt} checked={formData.responses[`q${i+1}`] === opt} onChange={(e) => setFormData(prev => ({...prev, responses: {...prev.responses, [`q${i+1}`]: e.target.value}}))} required className="w-4 h-4 text-purple-600"/>
+                            <span className="text-gray-700">{opt}</span>
+                          </label>
+                        ))}
+                      </div>
+                      {item.hasDesc && formData.responses.q2 === 'Yes' && (
+                        <div className="mt-3">
+                          <label className="block text-sm text-gray-600 mb-1">Please describe briefly:</label>
+                          <input type="text" value={formData.responses.q2desc} onChange={(e) => setFormData(prev => ({...prev, responses: {...prev.responses, q2desc: e.target.value}}))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">Complaints, Challenges, or Areas for Improvement</label>
+                  <textarea value={formData.complaints} onChange={(e) => setFormData({...formData, complaints: e.target.value})} rows="3" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-2">Suggestions or Feedback</label>
+                  <textarea value={formData.complaints} onChange={(e) => setFormData({...formData, suggestions: e.target.value})} rows="3" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><label className="block text-sm font-medium text-gray-700 mb-2">Evaluator Name *</label>
+                    <input type="text" value={formData.evaluatorName} onChange={(e) => setFormData({...formData, evaluatorName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
+                  <div><label className="block text-sm font-medium text-gray-700 mb-2">Signature *</label>
+                    <input type="text" value={formData.evaluatorSignature} onChange={(e) => setFormData({...formData, evaluatorSignature: e.target.value})} required placeholder="Type your name" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button type="submit" className="flex-1 bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 transition-colors">Submit Evaluation</button>
+                  <button type="button" onClick={() => {setShowEvaluationForm(false); setEvaluationType(null);}} className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
+                </div>
+              </form>
             </div>
           </div>
         );

@@ -1,0 +1,301 @@
+<!-- Evaluation Forms Component - To be integrated into index.html -->
+
+<!-- Staff/Service Evaluation Form Component -->
+<script type="text/babel">
+const StaffServiceEvaluationForm = ({ onClose, onSubmit }) => {
+  const [formData, setFormData] = useState({
+    familyName: '',
+    clientName: '',
+    staffName: '',
+    evaluationDate: new Date().toISOString().split('T')[0],
+    serviceTypes: {
+      homemaker: false,
+      personalCare: false,
+      communityConnection: false,
+      supportedCommunityConnection: false,
+      respite: false,
+      mentorship: false
+    },
+    responses: {
+      q1: '',
+      q2: '',
+      q3: '',
+      q4: '',
+      q5: '',
+      q6: '',
+      q7: '',
+      q8: '',
+      q9: '',
+      q10: '',
+      q11: '',
+      q12: '',
+      q13: '',
+      q14: ''
+    },
+    rating: '',
+    incidents: '',
+    concerns: '',
+    evaluatorName: '',
+    evaluatorSignature: ''
+  });
+
+  const questions = [
+    "Does the staff consistently arrive on time?",
+    "Does the staff call if they are unable to make it?",
+    "Does the staff treat your family or loved one with respect?",
+    "Is your staff's attitude positive and supportive?",
+    "Does the staff listen to your needs and follow your care plan?",
+    "Does your staff keep your home clean and organized during the visit?",
+    "Do you feel safe with the staff in your home?",
+    "Is the staff helpful in meeting daily living goals?",
+    "Does the staff encourage independence when appropriate?",
+    "Does the staff communicate clearly with you or your coordinator?",
+    "Are you satisfied with the quality of service provided?",
+    "Does the staff check in or check out through the EVV app regularly?",
+    "Do you have any issues with how services are being documented?",
+    "Would you recommend this staff member to others?"
+  ];
+
+  const handleCheckboxChange = (type) => {
+    setFormData(prev => ({
+      ...prev,
+      serviceTypes: {
+        ...prev.serviceTypes,
+        [type]: !prev.serviceTypes[type]
+      }
+    }));
+  };
+
+  const handleResponseChange = (questionNum, value) => {
+    setFormData(prev => ({
+      ...prev,
+      responses: {
+        ...prev.responses,
+        [questionNum]: value
+      }
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    const selectedServices = Object.keys(formData.serviceTypes)
+      .filter(key => formData.serviceTypes[key])
+      .map(key => key.replace(/([A-Z])/g, ' $1').trim())
+      .join(', ');
+
+    const evaluationData = {
+      evaluation_type: 'staff_service',
+      evaluator_name: formData.evaluatorName,
+      evaluator_signature: formData.evaluatorSignature,
+      client_name: formData.clientName,
+      service_provider_name: formData.staffName,
+      evaluation_date: formData.evaluationDate,
+      service_types: selectedServices,
+      responses: {
+        familyName: formData.familyName,
+        ...formData.responses,
+        rating: formData.rating,
+        incidents: formData.incidents,
+        concerns: formData.concerns
+      }
+    };
+
+    await onSubmit(evaluationData);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 overflow-y-auto">
+      <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl p-8 my-8">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-3xl font-bold text-gray-800">Staff/Service Evaluation Form</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <XCircle className="w-6 h-6" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Basic Information */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Family Name *</label>
+              <input
+                type="text"
+                value={formData.familyName}
+                onChange={(e) => setFormData({...formData, familyName: e.target.value})}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Client Name *</label>
+              <input
+                type="text"
+                value={formData.clientName}
+                onChange={(e) => setFormData({...formData, clientName: e.target.value})}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Staff Name *</label>
+              <input
+                type="text"
+                value={formData.staffName}
+                onChange={(e) => setFormData({...formData, staffName: e.target.value})}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Date of Evaluation *</label>
+              <input
+                type="date"
+                value={formData.evaluationDate}
+                onChange={(e) => setFormData({...formData, evaluationDate: e.target.value})}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+
+          {/* Service Types */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">Service Types *</label>
+            <div className="grid grid-cols-2 gap-3">
+              {['homemaker', 'personalCare', 'communityConnection', 'supportedCommunityConnection', 'respite', 'mentorship'].map(type => (
+                <label key={type} className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.serviceTypes[type]}
+                    onChange={() => handleCheckboxChange(type)}
+                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <span className="text-gray-700">{type.replace(/([A-Z])/g, ' $1').trim()}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Questions */}
+          <div className="space-y-4">
+            <h3 className="text-xl font-semibold text-gray-800">Evaluation Questions</h3>
+            {questions.map((question, index) => (
+              <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                <p className="font-medium text-gray-700 mb-3">{index + 1}. {question}</p>
+                <div className="flex gap-4">
+                  {['Yes', 'No', 'Sometimes'].map(option => (
+                    <label key={option} className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`q${index + 1}`}
+                        value={option}
+                        checked={formData.responses[`q${index + 1}`] === option}
+                        onChange={(e) => handleResponseChange(`q${index + 1}`, e.target.value)}
+                        required
+                        className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="text-gray-700">{option}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Rating */}
+          <div className="bg-indigo-50 p-4 rounded-lg">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Overall, how would you rate the staff's quality of service? *
+            </label>
+            <div className="flex gap-3">
+              {[1, 2, 3, 4, 5].map(num => (
+                <label key={num} className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="rating"
+                    value={num}
+                    checked={formData.rating === num.toString()}
+                    onChange={(e) => setFormData({...formData, rating: e.target.value})}
+                    required
+                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span className="text-gray-700 font-semibold">{num}</span>
+                </label>
+              ))}
+              <span className="text-sm text-gray-500 ml-2">(1 = Poor, 5 = Excellent)</span>
+            </div>
+          </div>
+
+          {/* Text Areas */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Have there been any incidents, concerns, or issues with this staff member?
+            </label>
+            <textarea
+              value={formData.incidents}
+              onChange={(e) => setFormData({...formData, incidents: e.target.value})}
+              rows="3"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              What areas could the staff improve on?
+            </label>
+            <textarea
+              value={formData.concerns}
+              onChange={(e) => setFormData({...formData, concerns: e.target.value})}
+              rows="3"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+
+          {/* Signature */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Evaluator Name *</label>
+              <input
+                type="text"
+                value={formData.evaluatorName}
+                onChange={(e) => setFormData({...formData, evaluatorName: e.target.value})}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Signature *</label>
+              <input
+                type="text"
+                value={formData.evaluatorSignature}
+                onChange={(e) => setFormData({...formData, evaluatorSignature: e.target.value})}
+                required
+                placeholder="Type your name as signature"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+
+          {/* Submit Buttons */}
+          <div className="flex gap-3 pt-4">
+            <button
+              type="submit"
+              className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
+            >
+              Submit Evaluation
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+</script>
