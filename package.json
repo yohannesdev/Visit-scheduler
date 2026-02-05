@@ -1,0 +1,12 @@
+{
+  "name": "visit-scheduler",
+  "version": "1.0.0",
+  "description": "Home Visit Scheduler",
+  "scripts": {
+    "start": "node backend/server-multi.js",
+    "postinstall": "cd backend && npm install"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
