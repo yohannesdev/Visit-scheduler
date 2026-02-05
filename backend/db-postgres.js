@@ -18,7 +18,7 @@ async function connectDB() {
     await pool.query('SELECT NOW()');
     console.log('✅ Connected to PostgreSQL database');
     
-    // Create table if it doesn't exist
+    // Create appointments table if it doesn't exist
     await pool.query(`
       CREATE TABLE IF NOT EXISTS appointments (
         id SERIAL PRIMARY KEY,
@@ -34,6 +34,29 @@ async function connectDB() {
       )
     `);
     console.log('✅ Appointments table ready');
+    
+    // Create evaluations table if it doesn't exist
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS evaluations (
+        id SERIAL PRIMARY KEY,
+        evaluation_type VARCHAR(50) NOT NULL,
+        appointment_id INTEGER REFERENCES appointments(id),
+        
+        evaluator_name VARCHAR(255),
+        evaluator_signature VARCHAR(255),
+        client_name VARCHAR(255),
+        service_provider_name VARCHAR(255),
+        evaluation_date DATE,
+        service_types TEXT,
+        
+        responses JSONB NOT NULL,
+        
+        submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        
+        CHECK (evaluation_type IN ('staff_service', 'parental_provider'))
+      )
+    `);
+    console.log('✅ Evaluations table ready');
   } catch (err) {
     console.error('❌ Database connection error:', err);
     throw err;

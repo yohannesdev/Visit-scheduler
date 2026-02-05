@@ -4,45 +4,6 @@ const router = express.Router();
 // Get database pool
 const { getPool } = require('../db-postgres');
 
-// Initialize evaluations table
-async function initializeEvaluationsTable() {
-  const pool = getPool();
-  const createTableQuery = `
-    CREATE TABLE IF NOT EXISTS evaluations (
-      id SERIAL PRIMARY KEY,
-      evaluation_type VARCHAR(50) NOT NULL,
-      appointment_id INTEGER REFERENCES appointments(id),
-      
-      -- Common fields
-      evaluator_name VARCHAR(255),
-      evaluator_signature VARCHAR(255),
-      client_name VARCHAR(255),
-      service_provider_name VARCHAR(255),
-      evaluation_date DATE,
-      service_types TEXT,
-      
-      -- Responses stored as JSON
-      responses JSONB NOT NULL,
-      
-      -- Metadata
-      submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      
-      CHECK (evaluation_type IN ('staff_service', 'parental_provider'))
-    );
-  `;
-  
-  try {
-    await pool.query(createTableQuery);
-    console.log('Evaluations table initialized successfully');
-  } catch (error) {
-    console.error('Error initializing evaluations table:', error);
-    throw error;
-  }
-}
-
-// Initialize table on module load
-initializeEvaluationsTable().catch(console.error);
-
 // GET all evaluations
 router.get('/', async (req, res) => {
   try {
