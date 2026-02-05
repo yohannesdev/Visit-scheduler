@@ -593,22 +593,24 @@
                     console.log('Date selected:', dateValue);
                     console.log('Currently booked dates:', bookedDates);
                     if (dateValue) {
+                      // Parse date parts to avoid timezone issues
+                      const [year, month, day] = dateValue.split('-').map(Number);
+                      const date = new Date(year, month - 1, day);
+                      const dayOfWeek = date.getDay();
+                      console.log('Day of week:', dayOfWeek, '(0=Sunday, 6=Saturday)');
+                      
+                      // Check if Sunday (0 = Sunday)
+                      if (dayOfWeek === 0) {
+                        alert('Sorry, we do not schedule visits on Sundays. Please select another date.');
+                        setSelectedDate('');
+                        return;
+                      }
+                      
                       // Check if date is already booked
                       const isBooked = bookedDates.includes(dateValue);
                       console.log('Is date booked?', isBooked);
                       if (isBooked) {
                         alert('Sorry, this date is already booked. Please select another date.');
-                        setSelectedDate('');
-                        return;
-                      }
-                      
-                      // Parse date parts to avoid timezone issues
-                      const [year, month, day] = dateValue.split('-').map(Number);
-                      const date = new Date(year, month - 1, day);
-                      
-                      // Check if Sunday (0 = Sunday)
-                      if (date.getDay() === 0) {
-                        alert('Sorry, we do not schedule visits on Sundays. Please select another date.');
                         setSelectedDate('');
                         return;
                       }
