@@ -254,8 +254,12 @@
       };
 
       const formatDate = (dateString) => {
+        if (!dateString) return '';
+        // Parse YYYY-MM-DD string to avoid timezone issues
+        const [year, month, day] = dateString.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        return new Date(dateString).toLocaleDateString('en-US', options);
+        return date.toLocaleDateString('en-US', options);
       };
 
       const formatDateTime = (isoString) => {
@@ -271,7 +275,15 @@
 
       const formatTime = (timeString) => {
         if (!timeString) return '';
-        const [hours, minutes] = timeString.split(':');
+        // Handle both string format (HH:MM:SS) and Date object
+        let timeStr = timeString;
+        if (typeof timeString === 'object' && timeString.getHours) {
+          // It's a Date object, extract time
+          const hours = timeString.getHours();
+          const minutes = timeString.getMinutes();
+          timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        }
+        const [hours, minutes] = timeStr.split(':');
         const hour = parseInt(hours);
         const ampm = hour >= 12 ? 'PM' : 'AM';
         const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
