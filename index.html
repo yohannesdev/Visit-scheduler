@@ -78,6 +78,14 @@
       const [appointments, setAppointments] = useState([]);
       const [loading, setLoading] = useState(false);
 
+      // Check URL for admin access
+      useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('admin') === 'true') {
+          setShowAdmin(true);
+        }
+      }, []);
+
       // API URL - change this to your local server URL
       const API_URL = 'http://localhost:3001/api/appointments';
 
@@ -474,14 +482,6 @@
               
               <h1 className="text-3xl font-bold text-gray-800 mb-2">Request Home Visit</h1>
               <p className="text-gray-600">Submit your preferred date and we'll confirm availability</p>
-              
-              {/* Admin Access Button */}
-              <button
-                onClick={() => setShowAdmin(true)}
-                className="mt-4 text-sm text-gray-500 hover:text-indigo-600 underline"
-              >
-                Admin Access
-              </button>
             </div>
 
             <div className="space-y-5">
