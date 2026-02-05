@@ -22,17 +22,36 @@ const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
  */
 async function createCalendarEvent(appointment) {
   try {
+    console.log('📅 Inside createCalendarEvent function');
+    console.log('   Appointment:', appointment);
+    
     // Parse the date and time
     const appointmentDate = new Date(appointment.requestedDate);
-    const timeParts = appointment.requestedTime.split(':');
+    console.log('   Parsed date:', appointmentDate);
+    
+    // Handle requestedTime - it could be a Date object or a string
+    let hours, minutes;
+    if (typeof appointment.requestedTime === 'string') {
+      const timeParts = appointment.requestedTime.split(':');
+      hours = parseInt(timeParts[0]);
+      minutes = parseInt(timeParts[1]);
+    } else {
+      // It's a Date object from SQL Server TIME type
+      const timeDate = new Date(appointment.requestedTime);
+      hours = timeDate.getUTCHours();
+      minutes = timeDate.getUTCMinutes();
+    }
+    console.log('   Time:', `${hours}:${minutes}`);
     
     // Create start datetime
     const startDateTime = new Date(appointmentDate);
-    startDateTime.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0);
+    startDateTime.setHours(hours, minutes, 0);
+    console.log('   Start datetime:', startDateTime.toISOString());
     
     // Create end datetime (1 hour later)
     const endDateTime = new Date(startDateTime);
     endDateTime.setHours(startDateTime.getHours() + 1);
+    console.log('   End datetime:', endDateTime.toISOString());
     
     const event = {
       summary: `Home Visit - ${appointment.name}`,
@@ -58,17 +77,22 @@ Submitted: ${new Date(appointment.submittedAt).toLocaleString()}
         timeZone: 'America/New_York',
       },
       attendees: [
-        { email: appointment.email }
+        { email: 'Forallhomecare@gmail.com', responseStatus: 'accepted' }, // Your business email
+        { email: appointment.email } // Client email
       ],
       reminders: {
         useDefault: false,
         overrides: [
-          { method: 'email', minutes: 24 * 60 }, // 1 day before
-          { method: 'popup', minutes: 30 }, // 30 minutes before
+          { method: 'email', minutes: 24 * 60 }, // 1 day (24 hours) before - EMAIL
+          { method: 'email', minutes: 60 }, // 1 hour before - EMAIL
+          { method: 'popup', minutes: 30 }, // 30 minutes before - POPUP
         ],
       },
+      sendNotifications: true,
+      sendUpdates: 'all'
     };
 
+    console.log('   Calling calendar.events.insert...');
     const response = await calendar.events.insert({
       calendarId: process.env.GOOGLE_CALENDAR_ID || 'primary',
       resource: event,
@@ -78,9 +102,12 @@ Submitted: ${new Date(appointment.submittedAt).toLocaleString()}
     console.log('✅ Calendar event created:', response.data.htmlLink);
     return response.data;
   } catch (error) {
-    console.error('❌ Error creating calendar event:', error.message);
+    console.error('❌ Error creating calendar event:');
+    console.error('   Error message:', error.message);
+    console.error('   Error code:', error.code);
+    console.error('   Full error:', error);
     if (error.code === 401) {
-      console.error('Authentication error. Please refresh your Google Calendar credentials.');
+      console.error('🔐 Authentication error. Please refresh your Google Calendar credentials.');
     }
     throw error;
   }

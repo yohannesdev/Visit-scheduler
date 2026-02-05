@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getPool, sql } = require('../db');
 const { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } = require('../googleCalendar');
+const { sendNewAppointmentNotification } = require('../emailService');
 
 // GET all appointments
 router.get('/', async (req, res) => {
@@ -78,7 +79,17 @@ router.post('/', async (req, res) => {
       `);
     
     console.log('Insert successful:', result.recordset[0]);
-    res.status(201).json(result.recordset[0]);
+    const newAppointment = result.recordset[0];
+    
+    // Send email notification to business
+    if (process.env.EMAIL_APP_PASSWORD) {
+      console.log('📧 Sending email notification...');
+      await sendNewAppointmentNotification(newAppointment);
+    } else {
+      console.log('⚠️  Email notifications not configured (missing EMAIL_APP_PASSWORD)');
+    }
+    
+    res.status(201).json(newAppointment);
   } catch (err) {
     console.error('Error creating appointment:', err);
     console.error('Error details:', err.message);
@@ -113,15 +124,25 @@ router.put('/:id/status', async (req, res) => {
     const appointment = result.recordset[0];
     
     // Create Google Calendar event when status changes to "confirmed"
+    console.log('🔍 Checking calendar creation conditions...');
+    console.log('   Status:', status);
+    console.log('   Has refresh token:', !!process.env.GOOGLE_REFRESH_TOKEN);
+    
     if (status === 'confirmed' && process.env.GOOGLE_REFRESH_TOKEN) {
       try {
-        console.log('Creating Google Calendar event for appointment:', appointment.id);
-        await createCalendarEvent(appointment);
-        console.log('✅ Google Calendar event created successfully');
+        console.log('📅 Creating Google Calendar event for appointment:', appointment.id);
+        console.log('   Appointment data:', JSON.stringify(appointment, null, 2));
+        const result = await createCalendarEvent(appointment);
+        console.log('✅ Google Calendar event created successfully!');
+        console.log('   Event link:', result.htmlLink);
       } catch (calendarError) {
-        console.error('⚠️  Warning: Could not create calendar event:', calendarError.message);
+        console.error('❌ ERROR creating calendar event:');
+        console.error('   Message:', calendarError.message);
+        console.error('   Full error:', calendarError);
         // Don't fail the request if calendar creation fails
       }
+    } else {
+      console.log('⏭️  Skipping calendar creation - conditions not met');
     }
     
     res.json(appointment);

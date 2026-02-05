@@ -458,7 +458,7 @@ export default function HomeVisitScheduler() {
             onClick={handleSubmit}
             className="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
           >
-            Confirm preferred date
+            Confirm Preferred Visit Date & Time
           </button>
         </div>
       </div>
