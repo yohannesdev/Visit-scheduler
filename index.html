@@ -97,12 +97,12 @@
           const response = await fetch(API_URL);
           if (response.ok) {
             const data = await response.json();
-            // Get all confirmed appointment dates
-            const confirmed = data
-              .filter(apt => apt.status === 'confirmed')
+            // Get all pending and confirmed appointment dates (not declined)
+            const booked = data
+              .filter(apt => apt.status === 'confirmed' || apt.status === 'pending')
               .map(apt => apt.requestedDate);
-            console.log('Booked dates loaded:', confirmed);
-            setBookedDates(confirmed);
+            console.log('Booked dates loaded:', booked);
+            setBookedDates(booked);
           }
         } catch (error) {
           console.error('Error fetching booked dates:', error);
