@@ -82,6 +82,7 @@
       const [evaluationType, setEvaluationType] = useState(null);
       const [evaluations, setEvaluations] = useState([]);
       const [showEvaluationsList, setShowEvaluationsList] = useState(false);
+      const [selectedServiceType, setSelectedServiceType] = useState('');
       
       // Form data for evaluations
       const [staffFormData, setStaffFormData] = useState({
@@ -177,6 +178,7 @@
         if (!address.trim()) newErrors.address = 'Address is required';
         if (!selectedDate) newErrors.date = 'Please select a date';
         if (!selectedTime) newErrors.time = 'Please select a time';
+        if (!selectedServiceType) newErrors.serviceType = 'Please select a service type for evaluation';
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -188,7 +190,7 @@
         if (validateForm()) {
           try {
             setLoading(true);
-            const response = await fetch(API_URL, {
+            const appointmentResponse = await fetch(API_URL, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -204,7 +206,69 @@
               })
             });
 
-            if (response.ok) {
+            if (appointmentResponse.ok) {
+              const appointmentData = await appointmentResponse.json();
+              const appointmentId = appointmentData.id;
+
+              // Submit evaluation linked to appointment
+              if (selectedServiceType) {
+                let evaluationData;
+                
+                if (selectedServiceType === 'staff_service') {
+                  const selectedServices = Object.keys(staffFormData.serviceTypes)
+                    .filter(k => staffFormData.serviceTypes[k])
+                    .map(k => k.replace(/([A-Z])/g, ' $1').trim())
+                    .join(', ');
+                  
+                  evaluationData = {
+                    evaluation_type: 'staff_service',
+                    appointment_id: appointmentId,
+                    evaluator_name: staffFormData.evaluatorName,
+                    evaluator_signature: staffFormData.evaluatorSignature,
+                    client_name: staffFormData.clientName,
+                    service_provider_name: staffFormData.staffName,
+                    evaluation_date: staffFormData.evaluationDate,
+                    service_types: selectedServices,
+                    responses: {
+                      familyName: staffFormData.familyName,
+                      ...staffFormData.responses,
+                      rating: staffFormData.rating,
+                      incidents: staffFormData.incidents,
+                      concerns: staffFormData.concerns
+                    }
+                  };
+                } else if (selectedServiceType === 'parental_provider') {
+                  const selectedServices = Object.keys(parentalFormData.serviceTypes)
+                    .filter(k => parentalFormData.serviceTypes[k])
+                    .map(k => k.replace(/([A-Z])/g, ' $1').trim())
+                    .join(', ');
+                  
+                  evaluationData = {
+                    evaluation_type: 'parental_provider',
+                    appointment_id: appointmentId,
+                    evaluator_name: parentalFormData.evaluatorName,
+                    evaluator_signature: parentalFormData.evaluatorSignature,
+                    client_name: parentalFormData.clientName,
+                    service_provider_name: parentalFormData.providerName,
+                    evaluation_date: parentalFormData.evaluationDate,
+                    service_types: selectedServices,
+                    responses: {
+                      parentName: parentalFormData.parentName,
+                      ...parentalFormData.responses,
+                      complaints: parentalFormData.complaints,
+                      suggestions: parentalFormData.suggestions
+                    }
+                  };
+                }
+
+                // Submit evaluation
+                await fetch(EVALUATIONS_API_URL, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(evaluationData)
+                });
+              }
+
               setIsSubmitted(true);
             } else {
               alert('Failed to submit appointment. Please try again.');
@@ -228,6 +292,19 @@
         setNotes('');
         setIsSubmitted(false);
         setErrors({});
+        setSelectedServiceType('');
+        setStaffFormData({
+          familyName: '', clientName: '', staffName: '', evaluationDate: new Date().toISOString().split('T')[0],
+          serviceTypes: { homemaker: false, personalCare: false, communityConnection: false, supportedCommunityConnection: false, respite: false, mentorship: false },
+          responses: {q1:'',q2:'',q3:'',q4:'',q5:'',q6:'',q7:'',q8:'',q9:'',q10:'',q11:'',q12:'',q13:'',q14:''},
+          rating: '', incidents: '', concerns: '', evaluatorName: '', evaluatorSignature: ''
+        });
+        setParentalFormData({
+          parentName: '', clientName: '', providerName: '', evaluationDate: new Date().toISOString().split('T')[0],
+          serviceTypes: { homemaker: false, personalCare: false, communityConnection: false, supportedCommunityConnection: false, respite: false, mentorship: false },
+          responses: {q1:'',q2:'',q2desc:'',q3:'',q4:'',q5:'',q6:'',q7:'',q8:'',q9:'',q10:''},
+          complaints: '', suggestions: '', evaluatorName: '', evaluatorSignature: ''
+        });
       };
 
       const updateAppointmentStatus = async (id, newStatus) => {
@@ -1095,29 +1172,139 @@
 
               <div className="relative mt-6 pt-6 border-t border-gray-200">
                 <div className="text-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800">Service Evaluation</h3>
-                  <p className="text-sm text-gray-600 mt-1">Provide feedback on our services</p>
+                  <h3 className="text-lg font-semibold text-gray-800">Service Evaluation *</h3>
+                  <p className="text-sm text-gray-600 mt-1">Please select service type and provide feedback</p>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => {
-                      setEvaluationType('staff_service');
-                      setShowEvaluationForm(true);
-                    }}
-                    className="py-3 px-4 bg-indigo-100 text-indigo-700 rounded-lg font-medium hover:bg-indigo-200 transition-colors border border-indigo-300"
-                  >
-                    Staff/Service
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEvaluationType('parental_provider');
-                      setShowEvaluationForm(true);
-                    }}
-                    className="py-3 px-4 bg-purple-100 text-purple-700 rounded-lg font-medium hover:bg-purple-200 transition-colors border border-purple-300"
-                  >
-                    Parental Provider
-                  </button>
+                
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Select Service Type *</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all" 
+                           style={{borderColor: selectedServiceType === 'staff_service' ? '#4F46E5' : '#D1D5DB', backgroundColor: selectedServiceType === 'staff_service' ? '#EEF2FF' : 'white'}}>
+                      <input type="radio" name="serviceType" value="staff_service" checked={selectedServiceType === 'staff_service'} 
+                             onChange={(e) => setSelectedServiceType(e.target.value)} className="sr-only" />
+                      <span className={`font-medium ${selectedServiceType === 'staff_service' ? 'text-indigo-700' : 'text-gray-700'}`}>Staff/Service Evaluation</span>
+                    </label>
+                    <label className="flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all"
+                           style={{borderColor: selectedServiceType === 'parental_provider' ? '#7C3AED' : '#D1D5DB', backgroundColor: selectedServiceType === 'parental_provider' ? '#F5F3FF' : 'white'}}>
+                      <input type="radio" name="serviceType" value="parental_provider" checked={selectedServiceType === 'parental_provider'} 
+                             onChange={(e) => setSelectedServiceType(e.target.value)} className="sr-only" />
+                      <span className={`font-medium ${selectedServiceType === 'parental_provider' ? 'text-purple-700' : 'text-gray-700'}`}>Parental Provider Evaluation</span>
+                    </label>
+                  </div>
+                  {errors.serviceType && <p className="mt-2 text-sm text-red-600">{errors.serviceType}</p>}
                 </div>
+
+                {selectedServiceType === 'staff_service' && (
+                  <div className="space-y-4 bg-indigo-50 p-6 rounded-lg">
+                    <h4 className="font-semibold text-gray-800 text-lg">Staff/Service Evaluation Details</h4>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Family Name</label>
+                        <input type="text" value={staffFormData.familyName} onChange={(e) => setStaffFormData({...staffFormData, familyName: e.target.value})} 
+                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"/>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Staff Name</label>
+                        <input type="text" value={staffFormData.staffName} onChange={(e) => setStaffFormData({...staffFormData, staffName: e.target.value})} 
+                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"/>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Evaluator Name</label>
+                        <input type="text" value={staffFormData.evaluatorName} onChange={(e) => setStaffFormData({...staffFormData, evaluatorName: e.target.value})} 
+                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"/>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Signature</label>
+                        <input type="text" value={staffFormData.evaluatorSignature} onChange={(e) => setStaffFormData({...staffFormData, evaluatorSignature: e.target.value})} 
+                               placeholder="Type your name" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"/>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Service Types</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {['homemaker', 'personalCare', 'communityConnection', 'supportedCommunityConnection', 'respite', 'mentorship'].map(type => (
+                          <label key={type} className="flex items-center space-x-2 text-sm cursor-pointer">
+                            <input type="checkbox" checked={staffFormData.serviceTypes[type]} 
+                                   onChange={() => setStaffFormData(prev => ({...prev, serviceTypes: {...prev.serviceTypes, [type]: !prev.serviceTypes[type]}}))} 
+                                   className="w-4 h-4 text-indigo-600 rounded"/>
+                            <span className="text-gray-700 capitalize">{type.replace(/([A-Z])/g, ' $1').trim()}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Overall Service Rating</label>
+                      <div className="flex gap-2">
+                        {[1,2,3,4,5].map(n => (
+                          <label key={n} className="flex items-center cursor-pointer">
+                            <input type="radio" name="staffRating" value={n} checked={staffFormData.rating === n.toString()} 
+                                   onChange={(e) => setStaffFormData({...staffFormData, rating: e.target.value})} className="sr-only" />
+                            <span className={`w-10 h-10 flex items-center justify-center rounded-full border-2 font-bold transition-all ${staffFormData.rating === n.toString() ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-300'}`}>{n}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Concerns or Feedback (Optional)</label>
+                      <textarea value={staffFormData.concerns} onChange={(e) => setStaffFormData({...staffFormData, concerns: e.target.value})} 
+                                rows="2" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 resize-none text-sm"/>
+                    </div>
+                  </div>
+                )}
+
+                {selectedServiceType === 'parental_provider' && (
+                  <div className="space-y-4 bg-purple-50 p-6 rounded-lg">
+                    <h4 className="font-semibold text-gray-800 text-lg">Parental Provider Evaluation Details</h4>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Parent/Guardian Name</label>
+                        <input type="text" value={parentalFormData.parentName} onChange={(e) => setParentalFormData({...parentalFormData, parentName: e.target.value})} 
+                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"/>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Service Provider Name</label>
+                        <input type="text" value={parentalFormData.providerName} onChange={(e) => setParentalFormData({...parentalFormData, providerName: e.target.value})} 
+                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"/>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Evaluator Name</label>
+                        <input type="text" value={parentalFormData.evaluatorName} onChange={(e) => setParentalFormData({...parentalFormData, evaluatorName: e.target.value})} 
+                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"/>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Signature</label>
+                        <input type="text" value={parentalFormData.evaluatorSignature} onChange={(e) => setParentalFormData({...parentalFormData, evaluatorSignature: e.target.value})} 
+                               placeholder="Type your name" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"/>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Service Types</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {['homemaker', 'personalCare', 'communityConnection', 'supportedCommunityConnection', 'respite', 'mentorship'].map(type => (
+                          <label key={type} className="flex items-center space-x-2 text-sm cursor-pointer">
+                            <input type="checkbox" checked={parentalFormData.serviceTypes[type]} 
+                                   onChange={() => setParentalFormData(prev => ({...prev, serviceTypes: {...prev.serviceTypes, [type]: !prev.serviceTypes[type]}}))} 
+                                   className="w-4 h-4 text-purple-600 rounded"/>
+                            <span className="text-gray-700 capitalize">{type.replace(/([A-Z])/g, ' $1').trim()}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Suggestions or Feedback (Optional)</label>
+                      <textarea value={parentalFormData.suggestions} onChange={(e) => setParentalFormData({...parentalFormData, suggestions: e.target.value})} 
+                                rows="2" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 resize-none text-sm"/>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <button
@@ -1129,7 +1316,7 @@
                     : 'bg-indigo-600 text-white hover:bg-indigo-700'
                 }`}
               >
-                {loading ? 'Submitting...' : 'Confirm Preferred Visit Date & Time'}
+                {loading ? 'Submitting...' : 'Submit Request & Evaluation'}
               </button>
             </div>
           </div>
