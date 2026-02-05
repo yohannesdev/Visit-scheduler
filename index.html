@@ -82,6 +82,21 @@
       const [evaluationType, setEvaluationType] = useState(null);
       const [evaluations, setEvaluations] = useState([]);
       const [showEvaluationsList, setShowEvaluationsList] = useState(false);
+      
+      // Form data for evaluations
+      const [staffFormData, setStaffFormData] = useState({
+        familyName: '', clientName: '', staffName: '', evaluationDate: new Date().toISOString().split('T')[0],
+        serviceTypes: { homemaker: false, personalCare: false, communityConnection: false, supportedCommunityConnection: false, respite: false, mentorship: false },
+        responses: {q1:'',q2:'',q3:'',q4:'',q5:'',q6:'',q7:'',q8:'',q9:'',q10:'',q11:'',q12:'',q13:'',q14:''},
+        rating: '', incidents: '', concerns: '', evaluatorName: '', evaluatorSignature: ''
+      });
+      
+      const [parentalFormData, setParentalFormData] = useState({
+        parentName: '', clientName: '', providerName: '', evaluationDate: new Date().toISOString().split('T')[0],
+        serviceTypes: { homemaker: false, personalCare: false, communityConnection: false, supportedCommunityConnection: false, respite: false, mentorship: false },
+        responses: {q1:'',q2:'',q2desc:'',q3:'',q4:'',q5:'',q6:'',q7:'',q8:'',q9:'',q10:''},
+        complaints: '', suggestions: '', evaluatorName: '', evaluatorSignature: ''
+      });
 
       // Check URL for admin access
       useEffect(() => {
@@ -715,13 +730,6 @@
 
       // Evaluation Forms
       if (showEvaluationForm && evaluationType === 'staff_service') {
-        const [formData, setFormData] = useState({
-          familyName: '', clientName: '', staffName: '', evaluationDate: new Date().toISOString().split('T')[0],
-          serviceTypes: { homemaker: false, personalCare: false, communityConnection: false, supportedCommunityConnection: false, respite: false, mentorship: false },
-          responses: {q1:'',q2:'',q3:'',q4:'',q5:'',q6:'',q7:'',q8:'',q9:'',q10:'',q11:'',q12:'',q13:'',q14:''},
-          rating: '', incidents: '', concerns: '', evaluatorName: '', evaluatorSignature: ''
-        });
-
         const questions = [
           "Does the staff consistently arrive on time?",
           "Does the staff call if they are unable to make it?",
@@ -741,11 +749,11 @@
 
         const handleSubmitStaffEval = async (e) => {
           e.preventDefault();
-          const selectedServices = Object.keys(formData.serviceTypes).filter(k => formData.serviceTypes[k]).map(k => k.replace(/([A-Z])/g, ' $1').trim()).join(', ');
+          const selectedServices = Object.keys(staffFormData.serviceTypes).filter(k => staffFormData.serviceTypes[k]).map(k => k.replace(/([A-Z])/g, ' $1').trim()).join(', ');
           await submitEvaluation({
-            evaluation_type: 'staff_service', evaluator_name: formData.evaluatorName, evaluator_signature: formData.evaluatorSignature,
-            client_name: formData.clientName, service_provider_name: formData.staffName, evaluation_date: formData.evaluationDate,
-            service_types: selectedServices, responses: { familyName: formData.familyName, ...formData.responses, rating: formData.rating, incidents: formData.incidents, concerns: formData.concerns }
+            evaluation_type: 'staff_service', evaluator_name: staffFormData.evaluatorName, evaluator_signature: staffFormData.evaluatorSignature,
+            client_name: staffFormData.clientName, service_provider_name: staffFormData.staffName, evaluation_date: staffFormData.evaluationDate,
+            service_types: selectedServices, responses: { familyName: staffFormData.familyName, ...staffFormData.responses, rating: staffFormData.rating, incidents: staffFormData.incidents, concerns: staffFormData.concerns }
           });
         };
 
@@ -761,19 +769,19 @@
               <form onSubmit={handleSubmitStaffEval} className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div><label className="block text-sm font-medium text-gray-700 mb-2">Family Name *</label>
-                    <input type="text" value={formData.familyName} onChange={(e) => setFormData({...formData, familyName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
+                    <input type="text" value={staffFormData.familyName} onChange={(e) => setFormData({...formData, familyName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
                   <div><label className="block text-sm font-medium text-gray-700 mb-2">Client Name *</label>
-                    <input type="text" value={formData.clientName} onChange={(e) => setFormData({...formData, clientName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
+                    <input type="text" value={staffFormData.clientName} onChange={(e) => setFormData({...formData, clientName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
                   <div><label className="block text-sm font-medium text-gray-700 mb-2">Staff Name *</label>
-                    <input type="text" value={formData.staffName} onChange={(e) => setFormData({...formData, staffName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
+                    <input type="text" value={staffFormData.staffName} onChange={(e) => setFormData({...formData, staffName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
                   <div><label className="block text-sm font-medium text-gray-700 mb-2">Date of Evaluation *</label>
-                    <input type="date" value={formData.evaluationDate} onChange={(e) => setFormData({...formData, evaluationDate: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
+                    <input type="date" value={staffFormData.evaluationDate} onChange={(e) => setFormData({...formData, evaluationDate: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
                 </div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-3">Service Types *</label>
                   <div className="grid grid-cols-2 gap-3">
                     {['homemaker', 'personalCare', 'communityConnection', 'supportedCommunityConnection', 'respite', 'mentorship'].map(type => (
                       <label key={type} className="flex items-center space-x-2 cursor-pointer">
-                        <input type="checkbox" checked={formData.serviceTypes[type]} onChange={() => setFormData(prev => ({...prev, serviceTypes: {...prev.serviceTypes, [type]: !prev.serviceTypes[type]}}))} className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"/>
+                        <input type="checkbox" checked={staffFormData.serviceTypes[type]} onChange={() => setFormData(prev => ({...prev, serviceTypes: {...prev.serviceTypes, [type]: !prev.serviceTypes[type]}}))} className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"/>
                         <span className="text-gray-700 capitalize">{type.replace(/([A-Z])/g, ' $1').trim()}</span>
                       </label>
                     ))}
@@ -786,7 +794,7 @@
                       <div className="flex gap-4">
                         {['Yes', 'No', 'Sometimes'].map(opt => (
                           <label key={opt} className="flex items-center space-x-2 cursor-pointer">
-                            <input type="radio" name={`q${i+1}`} value={opt} checked={formData.responses[`q${i+1}`] === opt} onChange={(e) => setFormData(prev => ({...prev, responses: {...prev.responses, [`q${i+1}`]: e.target.value}}))} required className="w-4 h-4 text-indigo-600"/>
+                            <input type="radio" name={`q${i+1}`} value={opt} checked={staffFormData.responses[`q${i+1}`] === opt} onChange={(e) => setFormData(prev => ({...prev, responses: {...prev.responses, [`q${i+1}`]: e.target.value}}))} required className="w-4 h-4 text-indigo-600"/>
                             <span className="text-gray-700">{opt}</span>
                           </label>
                         ))}
@@ -799,7 +807,7 @@
                   <div className="flex gap-3">
                     {[1,2,3,4,5].map(n => (
                       <label key={n} className="flex items-center space-x-2 cursor-pointer">
-                        <input type="radio" name="rating" value={n} checked={formData.rating === n.toString()} onChange={(e) => setFormData({...formData, rating: e.target.value})} required className="w-4 h-4 text-indigo-600"/>
+                        <input type="radio" name="rating" value={n} checked={staffFormData.rating === n.toString()} onChange={(e) => setFormData({...formData, rating: e.target.value})} required className="w-4 h-4 text-indigo-600"/>
                         <span className="text-gray-700 font-semibold">{n}</span>
                       </label>
                     ))}
@@ -807,14 +815,14 @@
                   </div>
                 </div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-2">Incidents or Concerns</label>
-                  <textarea value={formData.incidents} onChange={(e) => setFormData({...formData, incidents: e.target.value})} rows="3" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
+                  <textarea value={staffFormData.incidents} onChange={(e) => setFormData({...formData, incidents: e.target.value})} rows="3" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-2">Areas for Improvement</label>
-                  <textarea value={formData.concerns} onChange={(e) => setFormData({...formData, concerns: e.target.value})} rows="3" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
+                  <textarea value={staffFormData.concerns} onChange={(e) => setFormData({...formData, concerns: e.target.value})} rows="3" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
                 <div className="grid grid-cols-2 gap-4">
                   <div><label className="block text-sm font-medium text-gray-700 mb-2">Evaluator Name *</label>
-                    <input type="text" value={formData.evaluatorName} onChange={(e) => setFormData({...formData, evaluatorName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
+                    <input type="text" value={staffFormData.evaluatorName} onChange={(e) => setFormData({...formData, evaluatorName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
                   <div><label className="block text-sm font-medium text-gray-700 mb-2">Signature *</label>
-                    <input type="text" value={formData.evaluatorSignature} onChange={(e) => setFormData({...formData, evaluatorSignature: e.target.value})} required placeholder="Type your name" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
+                    <input type="text" value={staffFormData.evaluatorSignature} onChange={(e) => setFormData({...formData, evaluatorSignature: e.target.value})} required placeholder="Type your name" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"/></div>
                 </div>
                 <div className="flex gap-3 pt-4">
                   <button type="submit" className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition-colors">Submit Evaluation</button>
@@ -827,33 +835,26 @@
       }
 
       if (showEvaluationForm && evaluationType === 'parental_provider') {
-        const [formData, setFormData] = useState({
-          parentName: '', clientName: '', providerName: '', evaluationDate: new Date().toISOString().split('T')[0],
-          serviceTypes: { homemaker: false, personalCare: false, communityConnection: false, supportedCommunityConnection: false, respite: false, mentorship: false },
-          responses: {q1:'',q2:'',q2desc:'',q3:'',q4:'',q5:'',q6:'',q7:'',q8:'',q9:'',q10:''},
-          complaints: '', suggestions: '', evaluatorName: '', evaluatorSignature: ''
-        });
-
         const questions = [
           {q: "Do you feel the services you provide are helping your child/family reach goals and maintain daily stability?", opts: ['Yes', 'No', 'Somewhat']},
-          {q: "Since you began providing these services, have you noticed improvement in your child's or family's overall well-being?", opts: ['Yes', 'No', 'Not sure'], hasDesc: true},
+          {q: "Since you began providing these services, have you noticed improvement in your child''s or family''s overall well-being?", opts: ['Yes', 'No', 'Not sure'], hasDesc: true},
           {q: "Does our agency provide the support, guidance, and resources you need to continue your role as a parental provider?", opts: ['Always', 'Sometimes', 'Rarely']},
           {q: "Is your assigned coordinator helpful and available when you have questions or need assistance?", opts: ['Yes', 'No', 'Sometimes']},
           {q: "Are your questions about timesheets, billing, or EVV check-in/check-out answered promptly?", opts: ['Yes', 'No', 'Sometimes']},
           {q: "Do you find the EVV app (check-in/check-out process) easy to use?", opts: ['Yes', 'No', 'Sometimes', 'Needs improvement']},
           {q: "How would you describe your compensation?", opts: ['Great', 'Fair', 'Unfair', 'Needs improvement']},
-          {q: "Do you believe the allotted service hours are enough to meet your client's needs?", opts: ['Yes', 'No', 'Not sure']},
+          {q: "Do you believe the allotted service hours are enough to meet your client''s needs?", opts: ['Yes', 'No', 'Not sure']},
           {q: "Would you like to continue providing services as a parental provider?", opts: ['Yes', 'No', 'Undecided']},
           {q: "Overall, how would you rate the quality of services and agency support?", opts: ['1 (Poor)', '2', '3', '4', '5 (Excellent)']}
         ];
 
         const handleSubmitParentalEval = async (e) => {
           e.preventDefault();
-          const selectedServices = Object.keys(formData.serviceTypes).filter(k => formData.serviceTypes[k]).map(k => k.replace(/([A-Z])/g, ' $1').trim()).join(', ');
+          const selectedServices = Object.keys(parentalFormData.serviceTypes).filter(k => parentalFormData.serviceTypes[k]).map(k => k.replace(/([A-Z])/g, ' $1').trim()).join(', ');
           await submitEvaluation({
-            evaluation_type: 'parental_provider', evaluator_name: formData.evaluatorName, evaluator_signature: formData.evaluatorSignature,
-            client_name: formData.clientName, service_provider_name: formData.providerName, evaluation_date: formData.evaluationDate,
-            service_types: selectedServices, responses: { parentName: formData.parentName, ...formData.responses, complaints: formData.complaints, suggestions: formData.suggestions }
+            evaluation_type: 'parental_provider', evaluator_name: parentalFormData.evaluatorName, evaluator_signature: parentalFormData.evaluatorSignature,
+            client_name: parentalFormData.clientName, service_provider_name: parentalFormData.providerName, evaluation_date: parentalFormData.evaluationDate,
+            service_types: selectedServices, responses: { parentName: parentalFormData.parentName, ...parentalFormData.responses, complaints: parentalFormData.complaints, suggestions: parentalFormData.suggestions }
           });
         };
 
@@ -869,19 +870,19 @@
               <form onSubmit={handleSubmitParentalEval} className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div><label className="block text-sm font-medium text-gray-700 mb-2">Parent/Guardian Name *</label>
-                    <input type="text" value={formData.parentName} onChange={(e) => setFormData({...formData, parentName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
+                    <input type="text" value={parentalFormData.parentName} onChange={(e) => setParentalFormData({...parentalFormData, parentName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
                   <div><label className="block text-sm font-medium text-gray-700 mb-2">Client Name *</label>
-                    <input type="text" value={formData.clientName} onChange={(e) => setFormData({...formData, clientName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
+                    <input type="text" value={parentalFormData.clientName} onChange={(e) => setParentalFormData({...parentalFormData, clientName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
                   <div><label className="block text-sm font-medium text-gray-700 mb-2">Service Provider Name *</label>
-                    <input type="text" value={formData.providerName} onChange={(e) => setFormData({...formData, providerName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
+                    <input type="text" value={parentalFormData.providerName} onChange={(e) => setParentalFormData({...parentalFormData, providerName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
                   <div><label className="block text-sm font-medium text-gray-700 mb-2">Date of Evaluation *</label>
-                    <input type="date" value={formData.evaluationDate} onChange={(e) => setFormData({...formData, evaluationDate: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
+                    <input type="date" value={parentalFormData.evaluationDate} onChange={(e) => setParentalFormData({...parentalFormData, evaluationDate: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
                 </div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-3">Service Types *</label>
                   <div className="grid grid-cols-2 gap-3">
                     {['homemaker', 'personalCare', 'communityConnection', 'supportedCommunityConnection', 'respite', 'mentorship'].map(type => (
                       <label key={type} className="flex items-center space-x-2 cursor-pointer">
-                        <input type="checkbox" checked={formData.serviceTypes[type]} onChange={() => setFormData(prev => ({...prev, serviceTypes: {...prev.serviceTypes, [type]: !prev.serviceTypes[type]}}))} className="w-4 h-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"/>
+                        <input type="checkbox" checked={parentalFormData.serviceTypes[type]} onChange={() => setParentalFormData(prev => ({...prev, serviceTypes: {...prev.serviceTypes, [type]: !prev.serviceTypes[type]}}))} className="w-4 h-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"/>
                         <span className="text-gray-700 capitalize">{type.replace(/([A-Z])/g, ' $1').trim()}</span>
                       </label>
                     ))}
@@ -894,29 +895,29 @@
                       <div className="flex flex-wrap gap-3">
                         {item.opts.map(opt => (
                           <label key={opt} className="flex items-center space-x-2 cursor-pointer">
-                            <input type="radio" name={`q${i+1}`} value={opt} checked={formData.responses[`q${i+1}`] === opt} onChange={(e) => setFormData(prev => ({...prev, responses: {...prev.responses, [`q${i+1}`]: e.target.value}}))} required className="w-4 h-4 text-purple-600"/>
+                            <input type="radio" name={`q${i+1}`} value={opt} checked={parentalFormData.responses[`q${i+1}`] === opt} onChange={(e) => setParentalFormData(prev => ({...prev, responses: {...prev.responses, [`q${i+1}`]: e.target.value}}))} required className="w-4 h-4 text-purple-600"/>
                             <span className="text-gray-700">{opt}</span>
                           </label>
                         ))}
                       </div>
-                      {item.hasDesc && formData.responses.q2 === 'Yes' && (
+                      {item.hasDesc && parentalFormData.responses.q2 === 'Yes' && (
                         <div className="mt-3">
                           <label className="block text-sm text-gray-600 mb-1">Please describe briefly:</label>
-                          <input type="text" value={formData.responses.q2desc} onChange={(e) => setFormData(prev => ({...prev, responses: {...prev.responses, q2desc: e.target.value}}))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/>
+                          <input type="text" value={parentalFormData.responses.q2desc} onChange={(e) => setParentalFormData(prev => ({...prev, responses: {...prev.responses, q2desc: e.target.value}}))} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/>
                         </div>
                       )}
                     </div>
                   ))}
                 </div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-2">Complaints, Challenges, or Areas for Improvement</label>
-                  <textarea value={formData.complaints} onChange={(e) => setFormData({...formData, complaints: e.target.value})} rows="3" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
+                  <textarea value={parentalFormData.complaints} onChange={(e) => setParentalFormData({...parentalFormData, complaints: e.target.value})} rows="3" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-2">Suggestions or Feedback</label>
-                  <textarea value={formData.complaints} onChange={(e) => setFormData({...formData, suggestions: e.target.value})} rows="3" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
+                  <textarea value={parentalFormData.suggestions} onChange={(e) => setParentalFormData({...parentalFormData, suggestions: e.target.value})} rows="3" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
                 <div className="grid grid-cols-2 gap-4">
                   <div><label className="block text-sm font-medium text-gray-700 mb-2">Evaluator Name *</label>
-                    <input type="text" value={formData.evaluatorName} onChange={(e) => setFormData({...formData, evaluatorName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
+                    <input type="text" value={parentalFormData.evaluatorName} onChange={(e) => setParentalFormData({...parentalFormData, evaluatorName: e.target.value})} required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
                   <div><label className="block text-sm font-medium text-gray-700 mb-2">Signature *</label>
-                    <input type="text" value={formData.evaluatorSignature} onChange={(e) => setFormData({...formData, evaluatorSignature: e.target.value})} required placeholder="Type your name" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
+                    <input type="text" value={parentalFormData.evaluatorSignature} onChange={(e) => setParentalFormData({...parentalFormData, evaluatorSignature: e.target.value})} required placeholder="Type your name" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"/></div>
                 </div>
                 <div className="flex gap-3 pt-4">
                   <button type="submit" className="flex-1 bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 transition-colors">Submit Evaluation</button>
@@ -1108,3 +1109,5 @@
   </script>
 </body>
 </html>
+
+
