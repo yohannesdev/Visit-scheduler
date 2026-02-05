@@ -538,13 +538,22 @@
                   type="date"
                   id="date"
                   value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
+                  onChange={(e) => {
+                    const date = new Date(e.target.value + 'T00:00:00');
+                    // Check if Sunday (0 = Sunday)
+                    if (date.getDay() === 0) {
+                      alert('Sorry, we do not schedule visits on Sundays. Please select another date.');
+                      setSelectedDate('');
+                    } else {
+                      setSelectedDate(e.target.value);
+                    }
+                  }}
                   min={today}
                   max={maxDateStr}
                   className={`w-full px-4 py-3 border ${errors.date ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all`}
                 />
                 {errors.date && <p className="mt-1 text-sm text-red-600">{errors.date}</p>}
-                <p className="mt-2 text-xs text-gray-500">We'll confirm availability for your preferred date</p>
+                <p className="mt-2 text-xs text-gray-500">We'll confirm availability for your preferred date (No Sundays)</p>
               </div>
 
               <div>
