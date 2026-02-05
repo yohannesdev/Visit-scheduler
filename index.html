@@ -101,6 +101,7 @@
             const confirmed = data
               .filter(apt => apt.status === 'confirmed')
               .map(apt => apt.requestedDate);
+            console.log('Booked dates loaded:', confirmed);
             setBookedDates(confirmed);
           }
         } catch (error) {
@@ -589,9 +590,13 @@
                   value={selectedDate}
                   onChange={(e) => {
                     const dateValue = e.target.value;
+                    console.log('Date selected:', dateValue);
+                    console.log('Currently booked dates:', bookedDates);
                     if (dateValue) {
                       // Check if date is already booked
-                      if (bookedDates.includes(dateValue)) {
+                      const isBooked = bookedDates.includes(dateValue);
+                      console.log('Is date booked?', isBooked);
+                      if (isBooked) {
                         alert('Sorry, this date is already booked. Please select another date.');
                         setSelectedDate('');
                         return;
